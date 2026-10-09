@@ -1407,6 +1407,10 @@ function parseArgs(text) {
  * keystroke away for a person who does not want to ask the agent for it. The
  * reply arrives as a synthetic message — recorded in the session, so the next
  * user turn can build on it, and without spending a model turn to say it.
+ *
+ * And a failing tool answers rather than throws: this executor is the last
+ * plugin frame before the host, so a rejection here is a 500 that costs the
+ * session. The reason is delivered as the reply instead.
  */
 function buildCommands(ctx: any, tools: any[]) {
   const byName = new Map<string, any>(tools.map((tool) => [tool.name, tool]))
@@ -1433,7 +1437,22 @@ function buildCommands(ctx: any, tools: any[]) {
     name,
     description,
     execute: async ({ sessionID, prompt }) => {
-      await deliver(sessionID, name, await run(sessionID, toolName(name), parse(prompt?.text ?? '')))
+      try {
+        await deliver(sessionID, name, await run(sessionID, toolName(name), parse(prompt?.text ?? '')))
+      } catch (error) {
+        // A failing tool costs the caller a reply, never the session. This
+        // executor is the last frame between the plugin and the host: a
+        // throw here is a 500 on the command request, which crashes the
+        // session that asked. Observed, not deduced — an unguarded
+        // `planScaffold()` ENOENT took three sessions down before this
+        // guard existed. The reason travels as the reply so the caller can
+        // act on it, the same rule the write seam follows.
+        await ctx.session.synthetic({
+          sessionID,
+          text: `Could not run /${name}: ${error?.message ?? String(error)}`,
+          description: `/${name}`,
+        })
+      }
     },
   })
 

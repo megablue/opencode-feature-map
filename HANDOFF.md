@@ -9,36 +9,49 @@ disagrees with the code, the code is right. `AGENTS.md` is the process doc,
 This file is the volatile one — it exists so a new session knows *where things
 stand*, not *how they work*.
 
-As of `2026-10-09` — `main` at `0ced0e0` with an **uncommitted working tree**.
+As of `2026-10-09` — `main` at `62b1308` with an **uncommitted working tree**
+(the template-path crash fix).
 
 ## State
 
-- The port from `../workflow` (dsh-feature-map) is complete: `src/` (four files,
-  `index.ts` typechecked, the three ports `@ts-nocheck` by design),
-  `templates/`, `scripts/` (+ the new `install.mjs`), `test/` (three files),
-  `.github/workflows/ci.yml`, `README.md`, `docs/SPEC.md`, six feature pages.
-  `git status` and `git log --oneline` are the checks — nothing has been
-  committed because the user has not looked yet.
-- The gate is green as of the stamp: `npm run typecheck`, `npm run build`,
-  `npm test` (**64 tests**, 59 from the port plus 5 for the install script),
-  `npm run smoke` and `npm run measure` (25% smaller on this repository's map;
-  42% on the reference fixture) all pass.
-- The plugin is installed and **verified live** on this machine:
-  `opencode plugin list` shows `feature-map local`; the guard denied a real
-  `read` of `src/index.ts` with the remedy text, and the retry proceeded after
-  `feature_map` was consulted; `/feature-map-check` ran through the server API
-  and delivered its report as a synthetic session message.
+- `62b1308` is the port: the plugin, the installer, the tests, the docs — all
+  committed and green (64 tests at that commit).
+- **A live crash was then found and fixed in the working tree.** Every
+  `/feature-map-init` (and `/feature-map-adopt`) call 500'd with
+  `ENOENT … plugins\templates\AGENTS.md.tmpl` and crashed the session. Three
+  causes, all in the install/resolution chain, all fixed and pinned:
+  1. the discovery loader resolves a plugin package to its **root
+     `index.js`**, not `main`/`exports` — the first install's flattened root
+     entry was what loaded;
+  2. `src/templates.ts` resolved the templates directory with a fixed
+     `../templates/` hop, which from a root module points above the package —
+     replaced by `packageRoot()` (walk up to the nearest `package.json`);
+  3. the command executor threw on a failing tool, and a throw there is a 500
+     that takes the session down — it now answers with
+     `Could not run /<name>: <reason>`.
+  `scripts/install.mjs` now installs the package layout (`package.json`,
+  `dist/`, `templates/`) plus a one-line re-export entry, and wipes the target
+  first so a stale layout cannot outlive it. `git status` and `git log` are
+  the checks; nothing is committed yet.
+- The gate is green as of the stamp: typecheck, build, **68 tests** (+4: the
+  flattened-layout resolution, the install wipe/shim, the command soft-fail),
+  smoke and measure unchanged.
+- **Live re-verified after the reinstall**: `opencode plugin list` shows
+  `feature-map local` with the shim entry; `/feature-map-init` returned the
+  four-document plan (all four templates read) and `/feature-map-adopt
+  focus:agents` returned the adoption report — the exact calls that 500'd.
 - The machine's global install is `~/.config/opencode/plugins/feature-map/`,
-  made by `npm run plugin:install`. `~/.config/opencode/opencode.json` is back
-  to only the `@tarquinen/opencode-dcp@latest` entry — every attempt to load
-  this plugin from the `plugins` array (`file:///C:/…`, the absolute path, the
-  `../../`-relative path) was **silently dropped** by OpenCode 2.0.26 on
-  Windows; see `docs/features/packaging.md`.
+  in the package layout plus `index.js` shim, made by `npm run
+  plugin:install`. `~/.config/opencode/opencode.json` still holds only the
+  `@tarquinen/opencode-dcp@latest` entry.
 
 ## Open threads
 
-- Nothing in flight beyond the commit itself: the tree is complete and green,
-  waiting for the user's look before anything is staged.
+- Nothing in flight beyond the commit itself: the fix is complete, green and
+  live-verified, waiting for the user's look before anything is staged.
+- The DSH original (`../workflow`) still has the fixed-hop
+  `TEMPLATE_DIR` and the unguarded command executor. The port fixed both on
+  this side; mirroring them back is a change to that repository, not this one.
 - The repo's own `AGENTS.md` Layout and Commands sections were filled by hand
   from the same facts as `templates/AGENTS.md.tmpl`'s placeholders. The
   template still carries its fill-in comments — `templates.md` says a change to
@@ -52,9 +65,9 @@ As of `2026-10-09` — `main` at `0ced0e0` with an **uncommitted working tree**.
   `glob` paths are pinned by `test/contract.test.mjs` but were not triggered
   live (a grep denial also clears the session's one ask, so re-verifying needs
   a fresh session).
-- `/feature-map-check` is the only command exercised end to end; the other four
-  share `buildCommands()` and the same synthetic delivery, and are pinned by
-  tests.
+- `/feature-map-check`, `/feature-map-init` and `/feature-map-adopt` are the
+  commands exercised end to end; the other two share `buildCommands()` and the
+  same synthetic delivery, and are pinned by tests.
 
 ## Local-only state (not on the remote)
 

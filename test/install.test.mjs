@@ -63,6 +63,20 @@ describe('the install script', () => {
     assert.ok(existsSync(join(target, 'dist', 'index.js')), 'the build survived the reinstall')
   })
 
+  it('wipes the target first, so a stale flattened install cannot outlive it', async () => {
+    // A previous install that laid the built files at the package root (a
+    // flattened index.js beside a dist/) would otherwise keep those files,
+    // and the host resolves a plugin entry to the root index.js first.
+    const target = await install(plugins)
+    await writeFile(join(target, 'templates.js'), 'stale flattened module')
+    await install(plugins)
+    const entry = await readFile(join(target, 'index.js'), 'utf8')
+    assert.match(entry, /export \{ default \} from '\.\/dist\/index\.js'/, 'the entry is the shim')
+    assert.ok(!existsSync(join(target, 'templates.js')), 'no stale root modules remain')
+    assert.ok(!existsSync(join(target, 'map.js')), 'no stale root modules remain')
+    assert.ok(existsSync(join(target, 'dist', 'index.js')), 'the package layout is intact')
+  })
+
   it('removes its own copy, and says so when there is none', async () => {
     const result = await remove(plugins)
     assert.equal(result.state, 'removed')

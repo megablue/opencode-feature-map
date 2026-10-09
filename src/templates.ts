@@ -20,12 +20,42 @@
  * @module dsh-feature-map/templates
  */
 
+import { existsSync } from 'node:fs'
 import { mkdir, readFile, stat } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+/**
+ * The package root: the nearest directory above this module that holds a
+ * `package.json`.
+ *
+ * The templates directory is resolved from here rather than from a fixed
+ * relative hop (`../templates/` in the DSH original) because an installed
+ * copy is not guaranteed to keep the built layout: OpenCode's loader was
+ * observed resolving a plugin entry to a flattened root `index.js`, and a
+ * module at the package root then found `../templates/` pointing one
+ * directory *above* the package. The package root is the one location a
+ * `dist/` module, a root module and a `src/` module share.
+ *
+ * Falls back to the module's own directory when no manifest is found above
+ * it — unreachable for a shipped package, and it keeps the module
+ * importable from a bare source tree.
+ *
+ * @returns the absolute package root.
+ */
+function packageRoot() {
+  const here = dirname(fileURLToPath(import.meta.url))
+  let dir = here
+  for (;;) {
+    if (existsSync(join(dir, 'package.json'))) return dir
+    const parent = dirname(dir)
+    if (parent === dir) return here
+    dir = parent
+  }
+}
+
 /** Absolute path of the shipped `templates/` directory. */
-export const TEMPLATE_DIR = fileURLToPath(new URL('../templates/', import.meta.url))
+export const TEMPLATE_DIR = join(packageRoot(), 'templates')
 
 /**
  * The boilerplate set, in the order a project should read it.

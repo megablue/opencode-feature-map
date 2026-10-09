@@ -12,11 +12,11 @@
 
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import {
   MAP_INDEX,
@@ -49,6 +49,18 @@ import { applyRegen, findIndexTable, planRegen, regeneratePage, rewriteIndexTabl
 const here = fileURLToPath(new URL('.', import.meta.url))
 const repo = join(here, '..')
 const reference = join(repo, 'reference', 'PingLatencyOverlay')
+
+/** Copy a file or a directory tree, creating parents as needed. */
+async function copyTree(from, to) {
+  const info = await stat(from)
+  if (info.isDirectory()) {
+    await mkdir(to, { recursive: true })
+    for (const entry of await readdir(from)) await copyTree(join(from, entry), join(to, entry))
+  } else {
+    await mkdir(join(to, '..'), { recursive: true })
+    await copyFile(from, to)
+  }
+}
 
 test('the shipped boilerplate keeps its .tmpl suffix and never claims an instruction name', async () => {
   for (const template of TEMPLATES) {
@@ -858,4 +870,46 @@ test('a foreign table is refused, and the pages are rewritten anyway', () => {
   assert.equal(result.status, 'refused')
   assert.equal(result.text, indexText, 'a refused index is returned byte-for-byte unchanged')
   assert.ok(result.reason.includes('none of them is the map'), `got: ${result.reason}`)
+})
+
+/**
+ * The template directory is resolved from the package root, not from a fixed
+ * relative hop.
+ *
+ * An installed copy is not guaranteed to keep the built layout: OpenCode's
+ * loader was observed resolving a plugin entry to a flattened root index.js,
+ * and a module at the package root then resolved ../templates/ one directory
+ * above the package — every feature_map_init and feature_map_adopt call died
+ * on an ENOENT for AGENTS.md.tmpl. Both layouts must work, so both are
+ * pinned here.
+ */
+
+test('the built module resolves its templates from the package root', async () => {
+  assert.equal(TEMPLATE_DIR, join(repo, 'templates'), 'dist/templates.js finds the package root')
+  assert.ok(existsSync(join(TEMPLATE_DIR, 'AGENTS.md.tmpl')))
+})
+
+test('a flattened install finds its templates from the package root too', async () => {
+  // Simulate the observed install: the built module copied to the package
+  // root, beside the manifest and the templates directory.
+  const flat = await mkdtemp(join(tmpdir(), 'fm-flat-'))
+  try {
+    await writeFile(join(flat, 'templates.js'), await readFile(join(repo, 'dist', 'templates.js'), 'utf8'))
+    await writeFile(join(flat, 'package.json'), await readFile(join(repo, 'package.json'), 'utf8'))
+    await mkdir(join(flat, 'templates', 'docs', 'features'), { recursive: true })
+    await copyTree(join(repo, 'templates'), join(flat, 'templates'))
+
+    const flattened = await import(pathToFileURL(join(flat, 'templates.js')).href)
+    assert.equal(
+      flattened.TEMPLATE_DIR,
+      join(flat, 'templates'),
+      'a module at the package root finds templates beside the manifest, not above it',
+    )
+    const body = await flattened.readTemplate('AGENTS.md.tmpl')
+    assert.ok(body.includes('process and hard rules'), 'the template body is readable')
+    const plan = await flattened.planScaffold({ root: flat, variables: flattened.templateVariables({}) })
+    assert.equal(plan.entries.length, 4, 'the scaffold still plans every file')
+  } finally {
+    await rm(flat, { recursive: true, force: true })
+  }
 })

@@ -942,6 +942,35 @@ test('the commands run the tools behind them and inject their replies', async ()
   }
 })
 
+test('a command whose tool fails delivers the reason instead of throwing', async () => {
+  // The observed crash: an unguarded readTemplate ENOENT inside the tool left
+  // the command executor as the throwing frame, the host answered the command
+  // request with a 500, and the session died. The executor must answer.
+  const root = await regenProject()
+  try {
+    const ctx = mockContext({ root })
+    await plugin.setup(ctx)
+    const command = ctx.record.commands.find((entry) => entry.name === 'feature-map-init')
+    const tool = ctx.record.tools.find((entry) => entry.name === 'feature_map_init')
+    const original = tool.execute
+    tool.execute = async () => {
+      throw new Error("ENOENT: no such file or directory, open '…/plugins/templates/AGENTS.md.tmpl'")
+    }
+    try {
+      await command.execute({ sessionID: 'cmd-1', prompt: { text: '' }, delivery: 'steer' })
+    } finally {
+      tool.execute = original
+    }
+    assert.equal(ctx.record.synthetics.length, 1, 'the command still delivered a reply')
+    const reply = ctx.record.synthetics[0]
+    assert.ok(reply.text.startsWith('Could not run /feature-map-init:'), `got: ${reply.text}`)
+    assert.ok(reply.text.includes('ENOENT'), 'the reason travels with the reply')
+    assert.ok(reply.description.includes('feature-map-init'))
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 test('a command parses its arguments the way its description says', async () => {
   const root = await regenProject()
   try {

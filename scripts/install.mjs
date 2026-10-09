@@ -27,7 +27,7 @@
  * @module install
  */
 
-import { copyFile, mkdir, readFile, readdir, rm, stat } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { homedir } from 'node:os'
@@ -38,6 +38,20 @@ const PACKAGE_NAME = 'opencode-feature-map'
 
 /** What a copy consists of: the built output, the shipped data, and the manifest. */
 const PARTS = ['package.json', 'dist', 'templates']
+
+/**
+ * The entry file the discovery loader reads.
+ *
+ * OpenCode resolves an immediate plugin package directory to its root
+ * `index.js`/`index.ts`, **not** to the manifest's `main` or `exports` —
+ * observed, not deduced: the same package installed with `dist/` intact and
+ * no root entry did not load at all (`opencode plugin list` dropped it
+ * without a log line), while a root `index.js` loaded. The installed copy
+ * therefore keeps the shipped `dist/` layout and gains a one-line re-export
+ * at the root: the shim is the entire bridge, and the built files are what
+ * actually run.
+ */
+const ENTRY_SHIM = "export { default } from './dist/index.js'\n"
 
 /** The repository this script lives in. */
 const REPO_ROOT = resolve(import.meta.dirname, '..')
@@ -87,16 +101,23 @@ async function copyTree(from, to) {
 /**
  * Install the built package into a plugins directory.
  *
- * A reinstall overwrites the previous copy, so upgrading is the same command.
+ * The target is replaced rather than merged into: a previous install that
+ * laid the built files out differently (a flattened root `index.js` beside a
+ * `dist/`) would keep those files, and the host resolves a plugin entry to
+ * whichever it finds first. Wiping first makes the installed copy exactly
+ * what this package's `files` ships, so upgrading repairs as well as updates.
  *
  * @param pluginsDir - the plugins directory to install into.
  * @returns the installed plugin directory.
  */
 export async function install(pluginsDir) {
   const target = pluginDir(pluginsDir)
+  await rm(target, { recursive: true, force: true })
+  await mkdir(target, { recursive: true })
   for (const part of PARTS) {
     await copyTree(join(REPO_ROOT, part), join(target, part))
   }
+  await writeFile(join(target, 'index.js'), ENTRY_SHIM, 'utf8')
   return target
 }
 

@@ -18,9 +18,9 @@ Status: shipped (0.1.0) · Read when: editing `templates/`,
 
 - `templates/AGENTS.md.tmpl`, `templates/HANDOFF.md.tmpl`,
   `templates/docs/SPEC.md.tmpl`, `templates/docs/features/README.md.tmpl`.
-- `src/templates.ts` — `TEMPLATES`, `TEMPLATE_DIR`, `substitute()`,
-  `templateVariables()`, `targetPath()`, `planScaffold()`, `applyScaffold()`,
-  `SUMMARY_PLACEHOLDER`.
+- `src/templates.ts` — `TEMPLATES`, `TEMPLATE_DIR`, `packageRoot()`,
+  `substitute()`, `templateVariables()`, `targetPath()`, `planScaffold()`,
+  `applyScaffold()`, `SUMMARY_PLACEHOLDER`.
 - `src/index.ts` — the `feature_map_init` tool, and `writeThrough()`, the seam
   every writing tool shares.
 
@@ -47,6 +47,20 @@ fill in.
 The plan is the default and the write is opt-in. `planScaffold()` renders every
 file, checks what exists, and returns the content; the caller can then write it
 with the tools it already has, or ask for `write: true`.
+
+### The templates directory is resolved from the package root
+
+`TEMPLATE_DIR` is `join(packageRoot(), 'templates')`, where `packageRoot()`
+walks up from this module to the nearest `package.json` — not the DSH
+original's fixed `../templates/` hop. An installed copy is not guaranteed to
+keep the built layout: OpenCode's loader was observed resolving a plugin
+entry to a flattened root `index.js`, and a module at the package root then
+resolved `../templates/` one directory *above* the package. Every
+`feature_map_init` and `feature_map_adopt` call died on an ENOENT for
+`AGENTS.md.tmpl` — three sessions, each a 500 on the command request. The
+package root is the one location a `dist/` module, a root module and a `src/`
+module share, so one rule covers all three, and both layouts are pinned by a
+test rather than by an argument.
 
 ### The write seam has no sandbox policy to carry — and keeps the rule it taught
 
@@ -89,6 +103,11 @@ boilerplate unfilled has documents that read as authoritative and say nothing.
 - OpenCode accepts these files as instructions only from an `AGENTS.md`-shaped
   name, so the `.tmpl` suffix is also what keeps a `{{...}}` token out of any
   prompt-interpolation path — file content is never prompt text.
+- **An install that flattens the built files breaks template resolution.** A
+  copy with `index.js` at the package root and no `dist/` resolves
+  `../templates/` above the package. This is why the installer keeps the
+  package layout and why the resolution walks to the package root: either fix
+  alone would have stopped the crash, and both are pinned.
 
 ## Config keys / UI
 
@@ -104,13 +123,17 @@ boilerplate unfilled has documents that read as authoritative and say nothing.
 ## Tests that pin it
 
 `test/plugin.test.mjs`: `the shipped boilerplate keeps its .tmpl suffix and
-never claims an instruction name`, `the scaffold plans every file, then writes
-it`, `a placeholder with no value stays visible instead of blanking the
+never claims an instruction name`, `the built module resolves its templates
+from the package root`, `a flattened install finds its templates from the
+package root too`, `the scaffold plans every file, then writes it`,
+`a placeholder with no value stays visible instead of blanking the
 document`.
 
-`test/contract.test.mjs`: `a write carries the session's sandbox policy, and a
-failure is reported` became `a failed write is named, never counted` — the reply
-names the blocking file and the reason.
+`test/contract.test.mjs`: `a failed write is named, never counted` — the reply
+names the blocking file and the reason (a blocker *file* where a directory is
+needed fails with `ENOTDIR`), and `a command whose tool fails delivers the
+reason instead of throwing`, which is the other half of the crash this page
+records.
 
 ## Related
 
