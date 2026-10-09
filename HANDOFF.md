@@ -9,13 +9,15 @@ disagrees with the code, the code is right. `AGENTS.md` is the process doc,
 This file is the volatile one — it exists so a new session knows *where things
 stand*, not *how they work*.
 
-As of `no commits yet` — `2026-10-09`.
+As of `0cd5320` — `2026-10-09`.
 
 ## State
 
-Empty repository: nothing is committed and no source tree exists yet. The
-only files are the documentation scaffold written by `feature_map_init` —
-this file, `AGENTS.md`, `docs/SPEC.md` and `docs/features/README.md`.
+Initial commit `0cd5320` on `main`, working tree clean, no remote configured.
+There is no source tree yet: the only files are the documentation scaffold
+written by `feature_map_init` — this file, `AGENTS.md`, `docs/SPEC.md` and
+`docs/features/README.md`. `.gitattributes` pins LF, and `core.autocrlf` is
+`true` system-wide on this machine, so do not drop it.
 
 ## Open threads
 
@@ -31,5 +33,5 @@ be phrased. -->
 
 ## Local-only state (not on the remote)
 
-<!-- Scratch directories, local tags, rewritten history, anything a fresh clone
-will not have. -->
+Nothing: the repository has no remote, so the whole history is local.
+(`git remote -v` is the check.)
