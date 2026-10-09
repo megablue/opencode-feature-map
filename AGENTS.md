@@ -31,16 +31,60 @@ and only the feature doc(s) for what you are about to change.
 the feature docs are the map, the mechanism and the traps.
 
 ## Layout
-No source yet — this repository holds only documentation. As the first files
-land, replace this section with one bullet per top-level directory: what it
-owns, and why it is separate from its neighbour.
+
+One bullet per top-level directory: what it owns, and why it is separate from
+its neighbour.
+
+- **`src/`** — the plugin, in four files. `index.ts` is the only OpenCode-aware
+  file: the host adapters (`toolDef`, `buildCommands`, `parseArgs`), the guard
+  and the `Plugin.define` entry. `map.ts`, `regen.ts` and `templates.ts` are
+  byte-faithful ports of the DSH implementation (`@ts-nocheck`, pinned by the
+  suite rather than the typechecker) — the map reading/ranking/checking, the
+  regeneration, and the scaffold templates. They stay separate so the OpenCode
+  surface can change without the ported logic drifting from its original.
+- **`dist/`** — the built output (`tsc`). What `scripts/install.mjs` copies;
+  never edit by hand, and always rebuilt as part of the gate.
+- **`templates/`** — the four `.tmpl` boilerplate files a scaffolded project
+  receives. The suffix is load-bearing (it must never be read as an
+  instruction file); see `docs/features/templates.md`.
+- **`test/`** — `plugin.test.mjs` (the map/template layer on `dist/`),
+  `contract.test.mjs` (the host surface: registrations, tools, guard, commands),
+  `install.test.mjs` (the install/uninstall surface). The tests import the
+  built `dist/`, so the build is part of the test gate.
+- **`scripts/`** — `test.mjs` (runs every `*.test.mjs` in one process),
+  `smoke.mjs` (a plan-only pass over this repository), `measure.mjs` (the
+  ranking savings on the reference fixture), `install.mjs` (install/uninstall
+  into a plugins directory).
+- **`reference/PingLatencyOverlay/`** — a real conformant feature map from
+  another project, used as the fixture the checker, the regenerator and the
+  measure script are pinned against. Not this plugin's documentation.
+- **`.github/workflows/ci.yml`** — the same gate as the local chain, on Node 22.
 
 ## Commands
-No build, test, lint or run command exists yet — `package.json` has not
-landed. Fill this section in with the exact commands, in the directory that
-must be current, and state the gate before a commit as the whole chain
-(format → lint with warnings denied → test → build) rather than the test run
-alone.
+
+Run from the repository root. The gate before a commit is the whole chain, not
+the test run alone:
+
+```powershell
+npm run typecheck   # tsc --noEmit        — src/index.ts must be clean
+npm run build       # tsc                 — emits dist/, which the tests import
+npm test            # scripts/test.mjs    — every test/*.test.mjs, one process
+npm run smoke       # scripts/smoke.mjs . — a plan-only pass over this repo
+npm run measure     # scripts/measure.mjs . — ranking savings on the fixture
+```
+
+Install for live use (global or per-project), after the build:
+
+```powershell
+npm run plugin:install            # ~/.config/opencode/plugins/feature-map
+npm run plugin:install:project    # .opencode/plugins/feature-map in this project
+npm run plugin:uninstall
+```
+
+The gate is red if any step fails; `npm test` alone does not cover the build
+the tests import, and neither covers a live-registration check — after a change
+to the registrations or the install script, `opencode plugin list` (with the
+copy refreshed by `plugin:install`) is the confirmation that it loads.
 
 ## Workflow
 - **The features map is part of the change, not the cleanup.** Before staging a

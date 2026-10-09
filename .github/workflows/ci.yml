@@ -1,0 +1,39 @@
+# The commit gate from AGENTS.md, on every push and pull request.
+#
+# The plugin is TypeScript built with tsc, so the gate is the build itself:
+# `tsc --noEmit` type-checks src/index.ts (the new code) fully, `tsc` emits
+# dist/ (which also parses the ported modules, so a syntax error is caught),
+# and the suite and scripts run against that build. Every step below is one of
+# the commands AGENTS.md names, run on the Node the plugin is developed
+# against.
+
+name: gate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: install
+        run: npm ci
+      - name: typecheck
+        run: npm run typecheck
+      - name: build
+        run: npm run build
+      - name: tests
+        run: npm test
+      - name: smoke
+        run: npm run smoke
+      - name: measure
+        run: npm run measure

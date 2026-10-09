@@ -1,0 +1,33 @@
+{
+  "name": "opencode-feature-map",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenCode plugin that makes an agent read a project's feature map (docs/features/) before its source: five tools, five commands, and a once-per-session guard",
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/test.mjs",
+    "smoke": "node scripts/smoke.mjs .",
+    "measure": "node scripts/measure.mjs .",
+    "plugin:install": "node scripts/install.mjs",
+    "plugin:install:project": "node scripts/install.mjs --project",
+    "plugin:uninstall": "node scripts/install.mjs --remove"
+  },
+  "dependencies": {
+    "@opencode/plugin": "^2.0.26"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}

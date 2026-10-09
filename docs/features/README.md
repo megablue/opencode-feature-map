@@ -16,7 +16,12 @@ refactors with no behavior, mechanism, config or test change need no edit.
 
 | Feature | Doc | Read when |
 | --- | --- | --- |
-<!-- No feature pages yet. Add one row per page as it lands. -->
+| The map tool | [map-tool.md](map-tool.md) | changing `feature_map` or `feature_map_check`, the ranking, the tiers or the byte budget |
+| The guard | [enforcement.md](enforcement.md) | changing which lookups are denied once per session, `sourceTools`, `exemptPaths` or `mode` |
+| The boilerplate | [templates.md](templates.md) | editing `templates/`, `feature_map_init`, or what a scaffolded project receives |
+| Adoption | [adoption.md](adoption.md) | changing `feature_map_adopt`, the conformance report, or anything that writes into an existing project |
+| Regeneration | [regen.md](regen.md) | changing `feature_map_regen`, the chunker, the placeholder headings or the index reconcile |
+| Packaging | [packaging.md](packaging.md) | changing the registrations, the commands, the install script, or installing the plugin |
 
 <!-- One row per feature page. Keep "Read when" a trigger, not a restatement of
 the title: it is the line an agent searches for when it does not yet know which

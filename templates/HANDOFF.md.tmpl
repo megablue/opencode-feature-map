@@ -1,0 +1,35 @@
+# Session handoff — {{PROJECT_NAME}}
+
+Next: `docs/features/README.md` — the feature map. Read only the page for
+your area before the code.
+
+**A snapshot, not a source of truth.** This file goes stale by design. If it
+disagrees with the code, the code is right. `AGENTS.md` is the process doc,
+`docs/features/` is the feature map and `docs/SPEC.md` is the behaviour spec.
+This file is the volatile one — it exists so a new session knows *where things
+stand*, not *how they work*.
+
+As of `<commit>` — `<YYYY-MM-DD>`.
+
+## State
+
+<!-- The tip, whether it is pushed, what is uncommitted in the working tree and
+what it is waiting on. Point at the commands that give the truth (`git log -1`,
+the test run) instead of trusting a number written here. -->
+
+## Open threads
+
+<!-- One bullet per unfinished thing: what it is, what it waits on, and the
+next concrete action. Include the follow-ups that were noticed and deferred —
+this is the only place they survive a session boundary. -->
+
+## Known gaps (volatile; the durable traps live in the feature pages)
+
+<!-- What has never been verified by eye, what is exercised by scripted repros
+only, and the environment quirks that change how a request for evidence should
+be phrased. -->
+
+## Local-only state (not on the remote)
+
+<!-- Scratch directories, local tags, rewritten history, anything a fresh clone
+will not have. -->
