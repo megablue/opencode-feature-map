@@ -1,0 +1,8 @@
+# One byte sequence per file, on every machine.
+#
+# Git for Windows ships `core.autocrlf=true` system-wide, so without this the
+# same commit checks out as CRLF here and LF on a Linux clone. The feature map
+# is read by tooling that parses these files as they sit on disk, so the bytes
+# should not depend on who cloned it.
+
+* text=auto eol=lf
