@@ -9,14 +9,16 @@ disagrees with the code, the code is right. `AGENTS.md` is the process doc,
 This file is the volatile one — it exists so a new session knows *where things
 stand*, not *how they work*.
 
-As of `0cd5320` — `2026-10-09`.
+As of `0ced0e0` — `2026-10-09`.
 
 ## State
 
-Initial commit `0cd5320` on `main`, working tree clean, no remote configured.
-There is no source tree yet: the only files are the documentation scaffold
-written by `feature_map_init` — this file, `AGENTS.md`, `docs/SPEC.md` and
-`docs/features/README.md`. `.gitattributes` pins LF, and `core.autocrlf` is
+As of the stamp above, `main` is clean at `0ced0e0` with no remote configured;
+`git log --oneline` and `git status` are the checks, since this file lags by its
+own commit. The scaffold is two commits: `0cd5320` adds the docs, `0ced0e0`
+points this file at it. No source tree exists yet — `git ls-files` is the check
+— the only files are the documentation scaffold written by `feature_map_init`
+plus `.gitignore` and `.gitattributes`. The latter pins LF; `core.autocrlf` is
 `true` system-wide on this machine, so do not drop it.
 
 ## Open threads
@@ -27,9 +29,13 @@ sections and the first feature page need real content.
 
 ## Known gaps (volatile; the durable traps live in the feature pages)
 
-<!-- What has never been verified by eye, what is exercised by scripted repros
-only, and the environment quirks that change how a request for evidence should
-be phrased. -->
+Nothing has been verified by eye, because nothing runs yet. Two things a next
+session should not treat as settled:
+
+- The one-line project description in `AGENTS.md` is inferred from the
+  repository name and the sibling checkouts, not confirmed by the user.
+- There is no source, no `package.json` and no test run, so whether the plugin
+  does what it says has no answer yet.
 
 ## Local-only state (not on the remote)
 
