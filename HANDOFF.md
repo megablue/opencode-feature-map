@@ -9,12 +9,12 @@ disagrees with the code, the code is right. `AGENTS.md` is the process doc,
 This file is the volatile one — it exists so a new session knows *where things
 stand*, not *how they work*.
 
-As of `2026-10-18` — version `0.2.0`, working tree carrying the HTML-format
-change (not committed at the stamp).
+As of `2026-10-18` — version `0.2.0`, the HTML-format change committed on
+`main` as `c3e0b97`.
 
 ## State
 
-- **The HTML format is shipped in the working tree.** A feature map is now
+- **The HTML format is shipped.** A feature map is now
   `docs/features/index.html` plus one HTML page per feature. The agent still
   receives compact text: `listPages()` parses each page with
   `htmlToMapText()`, and every rank, cap and byte count uses that text.
@@ -23,7 +23,7 @@ change (not committed at the stamp).
   gone, replaced by `index.html` and seven `.html` pages, including the new
   `html-format.html`. The index has a `Page format` section and a mermaid
   graph demonstrating the format.
-- **The gate is green**: typecheck, build, **83 tests** (up from 69), smoke
+- **The gate is green**: typecheck, build, **84 tests** (up from 69), smoke
   (`7` HTML pages, `0` unindexed, `0` unresolved, regen would change `0`) and
   `measure` (the reference fixture is still Markdown and still reads).
 - **Live install refreshed**: `npm run plugin:install` and
@@ -41,8 +41,8 @@ change (not committed at the stamp).
 
 ## Open threads
 
-- Commit the change (docs, code, tests, template) as one unit; the feature map
-  and `docs/SPEC.md` are already updated in the same working tree.
+- The HTML change is committed as `c3e0b97`; nothing is left in the working
+  tree.
 - Exercise `/feature-map-upgrade` and `/feature-map` live after the server
   picks up the reinstall; the registrations and the tool bodies are pinned by
   `test/contract.test.mjs`, but the live command path is the last unobserved
