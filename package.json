@@ -1,8 +1,8 @@
 {
   "name": "opencode-feature-map",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "OpenCode plugin that makes an agent read a project's feature map (docs/features/) before its source: five tools, five commands, and a once-per-session guard",
+  "description": "OpenCode plugin that makes an agent read a project's feature map (docs/features/) before its source: six tools, six commands, a once-per-session guard, and an HTML map format with a Markdown upgrade path",
   "type": "module",
   "main": "./dist/index.js",
   "exports": {

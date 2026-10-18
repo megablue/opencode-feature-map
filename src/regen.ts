@@ -31,12 +31,14 @@
  */
 
 import { existsSync } from 'node:fs'
-import { mkdir, readFile } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { dirname, join, posix, resolve } from 'node:path'
 
 import {
+  LEGACY_MAP_INDEX,
   MAP_DIR,
   MAP_INDEX,
+  MAP_INDEX_HTML,
   PAGE_HEADINGS,
   TRIGGER_PLACEHOLDER,
   divisibility,
@@ -44,10 +46,13 @@ import {
   generateIndexRows,
   listPages,
   parseIndexRows,
+  readMapIndex,
   renderIndexRow,
   renderIndexTable,
   splitSubsections,
 } from './map.js'
+
+import { renderMapDocument } from './html.js'
 
 /** What each mandated section is for, as a fill-in comment, from the template. */
 const SECTION_HINTS = {
@@ -98,7 +103,7 @@ function isBullet(line) {
 
 /** The label a page is known by: its title, or its file name. */
 function labelOf(page) {
-  return page.title || posix.basename(page.rel).replace(/\.md$/i, '')
+  return page.title || posix.basename(page.rel).replace(/\.(md|html?)$/i, '')
 }
 
 /** Where a link in the index points, as an absolute path. */
@@ -309,7 +314,7 @@ function insertTable(indexText, rows, eol) {
  * @returns `{ text, status, counts, changes, reason? }`; `status` is `rewritten`,
  * `unchanged`, `inserted` or `refused`.
  */
-export function rewriteIndexTable(indexText, pages, options = {}) {
+function rewriteIndexText(indexText, pages, options = {}) {
   const indexPath = options.indexPath ?? join(...MAP_INDEX.split('/'))
   const eol = eolOf(indexText)
   const counts = { added: 0, repointed: 0, dropped: 0, kept: 0 }
@@ -396,6 +401,31 @@ export function rewriteIndexTable(indexText, pages, options = {}) {
     counts,
     changes,
   }
+}
+
+/**
+ * Reconcile the index's table, and re-emit it in the index's own format.
+ *
+ * The table logic above is written against canonical text, which is how the
+ * HTML index is read too; a rewritten HTML index is then wrapped back into the
+ * document shell. An unchanged index keeps the caller's original bytes —
+ * `options.raw` — so a run that found nothing to reconcile does not restyle a
+ * page it did not change.
+ *
+ * @param indexText - the index as canonical text.
+ * @param pages - pages from `listPages`.
+ * @param options - `indexPath`, `format` (`html` or `markdown`), `raw` and
+ * `title`.
+ * @returns `{ text, status, counts, changes, reason? }`.
+ */
+export function rewriteIndexTable(indexText, pages, options = {}) {
+  const result = rewriteIndexText(indexText, pages, options)
+  if (options.format !== 'html') return result
+  if (result.status === 'unchanged') {
+    return { ...result, text: options.raw ?? indexText }
+  }
+  const title = options.title ?? firstHeading(indexText) ?? 'Feature map'
+  return { ...result, text: renderMapDocument({ title, text: result.text, kind: 'index' }) }
 }
 
 /**
@@ -701,45 +731,62 @@ export function regeneratePage(page, context = {}) {
 export async function planRegen(root, options = {}) {
   const base = resolve(root)
   const mapDir = join(base, ...MAP_DIR.split('/'))
-  const indexPath = join(base, ...MAP_INDEX.split('/'))
   const maxSectionBytes = options.maxSectionBytes ?? 2048
   const absent = !existsSync(mapDir)
-  const indexText = absent ? '' : await readFile(indexPath, 'utf8').catch(() => '')
+  const index = await readMapIndex(base)
+  const indexPath = index.path
+  const indexText = index.text
   const pages = absent ? [] : await listPages(base)
   const ownRows = parseIndexRows(indexText)
 
   const entries = []
   const updated = []
   for (const page of pages) {
+    const format = page.format ?? 'markdown'
     const result = regeneratePage(page, { rows: ownRows, indexPath, maxSectionBytes })
+    const output =
+      format === 'html'
+        ? result.status === 'changed'
+          ? renderMapDocument({ title: firstHeading(result.text) ?? page.title, text: result.text })
+          : page.html ?? result.text
+        : result.text
     entries.push({
       rel: page.rel,
       path: page.path,
+      format,
       status: result.status,
       changes: result.changes,
-      text: result.text,
+      text: output,
       bytes: { before: Buffer.byteLength(page.text, 'utf8'), after: Buffer.byteLength(result.text, 'utf8') },
     })
     updated.push({ ...page, text: result.text, title: firstHeading(result.text) ?? page.title })
   }
 
   if (absent) {
-    return { root: base, indexPath, entries, absent, counts: emptyCounts(pages.length) }
+    return { root: base, indexPath, indexRel: index.rel, entries, absent, counts: emptyCounts(pages.length) }
   }
-  if (!indexText) {
+  if (!index.raw) {
     entries.push({
-      rel: MAP_INDEX,
+      rel: index.rel,
       path: indexPath,
+      kind: 'index',
       status: 'absent',
       changes: [],
       text: '',
-      reason: 'there is no `docs/features/README.md`; `feature_map_adopt` writes one from the template',
+      reason: `there is no \`${MAP_INDEX_HTML}\` (or legacy \`${LEGACY_MAP_INDEX}\`); \`feature_map_adopt\` writes one from the template`,
     })
   } else {
-    const result = rewriteIndexTable(indexText, updated, { indexPath })
+    const result = rewriteIndexTable(indexText, updated, {
+      indexPath,
+      format: index.format,
+      raw: index.raw,
+      title: firstHeading(indexText),
+    })
     entries.push({
-      rel: MAP_INDEX,
+      rel: index.rel,
       path: indexPath,
+      kind: 'index',
+      format: index.format,
       changes: result.changes,
       bytes: { before: Buffer.byteLength(indexText, 'utf8'), after: Buffer.byteLength(result.text, 'utf8') },
       ...result,

@@ -7,14 +7,15 @@ Finding the code for one area usually means grepping the tree, opening three
 files, and working out which parts matter. A feature map replaces that with one
 page per feature — the files, types, tests and traps for that area — so the
 agent can ask for exactly the piece it needs. `opencode-feature-map` puts that
-map in the agent's prompt, gives it five tools to read the map at whatever size
-the question deserves, exposes the same five as typed commands, and refuses the
+map in the agent's prompt, gives it six tools to read the map at whatever size
+the question deserves, exposes the same six as typed commands, and refuses the
 first source lookup of a session in a project that has a map, once, with the
 reason and the remedy.
 
 It also gets you the map in the first place: `feature_map_init` for a project
 that has nothing, `feature_map_adopt` for one that already has documentation,
-and `feature_map_regen` for one whose map has outgrown its shape.
+`feature_map_regen` for one whose map has outgrown its shape, and
+`feature_map_upgrade` to move a Markdown map to the HTML format.
 
 ## What you get
 
@@ -25,11 +26,12 @@ and `feature_map_regen` for one whose map has outgrown its shape.
 | `feature_map_init` | Scaffolds the workflow into a project: `AGENTS.md`, `HANDOFF.md`, `docs/SPEC.md` and the map index. |
 | `feature_map_adopt` | Reports what an existing project is missing, and writes only the files that do not exist. |
 | `feature_map_regen` | Rewrites an existing map so it reads well: the missing headings and `Status:` lines, every oversized section divided into `###`, and the index reconciled. |
+| `feature_map_upgrade` | Converts a Markdown map to HTML: an `.html` sibling per page, `index.html` for the index, `.md` links rewritten. Additive unless `prune`. |
 
 Plus a system-prompt section that states the read order, and a guard that
 enforces it once per session (see *What you will notice*).
 
-### The same five, as commands
+### The same six, as commands
 
 Each tool is also a command, so the map is one keystroke away for a person who
 does not want to ask the agent for it. The reply arrives as a message in the
@@ -44,6 +46,7 @@ session, without spending a model turn:
 /feature-map-init write            the scaffold, written
 /feature-map-adopt focus:sizes     one part of an adoption report
 /feature-map-regen apply           a map rewritten in place
+/feature-map-upgrade apply         a Markdown map converted to HTML
 ```
 
 The grammar is the tool's arguments, typed: `key:value` for a named argument, a
@@ -143,6 +146,8 @@ before the code, and update the page in the same commit as the change.
 
 `feature_map_adopt` is read-only unless you pass `apply: true`, and it **never
 edits a file that already exists**. What it reports depends on what you have.
+If your map is Markdown, `feature_map_upgrade` converts it to HTML afterwards —
+additively, unless you ask for `prune`.
 
 ### If you already have some form of feature map
 
@@ -217,29 +222,41 @@ measures, proposes, and — when asked — creates what is missing.
 
 ## Writing the pages
 
-The map is ordinary markdown that a person can write and review. One page per
-feature, with these headings in this order:
+The map is a set of HTML documents a person can open in a browser and an agent
+reads as text. One page per feature, with these headings in this order:
 
+```html
+<h1><Feature> — <one-line summary></h1>
+<p class="status">Status: shipped (vX.Y) · Read when: <the phrase someone would search for></p>
+
+<h2>What it does</h2>      what it is for, in a few bullets
+<h2>Map</h2>               the files, types, functions and test names — the payload
+<h2>How &amp; why</h2>     the mechanism, the invariants, the traps
+<h2>Config keys / UI</h2>  a dense table: key, default, range, where it is set
+<h2>Tests that pin it</h2> the test names to run first
+<h2>Related</h2>           links to the other pages
 ```
-# <Feature> — <one-line summary>
-Status: shipped (vX.Y) · Read when: <the phrase someone would search for>
 
-## What it does      what it is for, in a few bullets
-## Map               the files, types, functions and test names — the payload
-## How & why         the mechanism, the invariants, the traps
-## Config keys / UI  a dense table: key, default, range, where it is set
-## Tests that pin it the test names to run first
-## Related           links to the other pages
-```
+`feature_map_init` hands over a full index and page skeleton; you do not have to
+write the shell from scratch.
 
-Two rules make the map worth reading:
+Three rules make the map worth reading:
 
 - **Names, never line numbers.** Line numbers rot; a symbol name survives a
   refactor.
 - **Keep a section under about two kilobytes**, splitting longer ones with
-  `###`. A section is what a later session reads on its own, and one that
+  `<h3>`. A section is what a later session reads on its own, and one that
   outgrew a single read has to be divided before it can be handed over whole.
   `feature_map_check` names the ones that have.
+- **A block is pseudocode unless it must be exact.** `<pre class="pseudo">` is the
+  default for a code shape; `<pre class="verbatim" data-why="…">` is for bytes
+  that must survive, and the reason is required. A graph is
+  `<pre class="mermaid">` — the browser draws it and the agent gets the edge
+  list.
+
+A map written as Markdown still works. `feature_map_upgrade` writes the HTML
+siblings (`index.html` for `README.md`) and leaves the `.md` files in place
+unless you pass `prune`.
 
 ## What you will notice
 
@@ -295,13 +312,14 @@ Options are passed to the plugin through its entry in `opencode.json(c)`:
 This README is for using the plugin. The rest is in the repository:
 
 - [`docs/SPEC.md`](docs/SPEC.md) — what a session sees, in full.
-- [`docs/features/`](docs/features/README.md) — the feature map for this plugin
-  itself: [the map tool](docs/features/map-tool.md),
-  [the guard](docs/features/enforcement.md),
-  [the boilerplate](docs/features/templates.md),
-  [adoption](docs/features/adoption.md),
-  [regeneration](docs/features/regen.md),
-  [packaging](docs/features/packaging.md).
+- [`docs/features/index.html`](docs/features/index.html) — the feature map for this plugin
+  itself: [the map tool](docs/features/map-tool.html),
+  [the guard](docs/features/enforcement.html),
+  [the boilerplate](docs/features/templates.html),
+  [adoption](docs/features/adoption.html),
+  [regeneration](docs/features/regen.html),
+  [the HTML format](docs/features/html-format.html),
+  [packaging](docs/features/packaging.html).
 - [`AGENTS.md`](AGENTS.md) — how to work on the plugin.
 - [`HANDOFF.md`](HANDOFF.md) — where things currently stand.
 - [`templates/`](templates/) — the boilerplate the plugin hands to a project.

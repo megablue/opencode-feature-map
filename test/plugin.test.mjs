@@ -19,6 +19,7 @@ import test from 'node:test'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import {
+  LEGACY_MAP_INDEX,
   MAP_INDEX,
   TIER1_SECTIONS,
   capText,
@@ -78,13 +79,18 @@ test('the reference project is found from a nested directory and not from outsid
   const found = findMapRoot(join(reference, 'docs'))
   assert.ok(found, 'expected the map root to be found from a subdirectory')
   assert.equal(found.root, reference)
-  assert.equal(found.indexPath, join(reference, ...MAP_INDEX.split('/')))
+  assert.equal(found.indexPath, join(reference, ...LEGACY_MAP_INDEX.split('/')))
+  assert.equal(found.format, 'markdown')
+  assert.equal(found.legacy, true)
 })
 
 test('every reference page is listed once, and the index is not a page', async () => {
   const pages = await listPages(reference)
   assert.ok(pages.length >= 10, `expected the reference map to have pages, got ${pages.length}`)
-  assert.ok(!pages.some((page) => page.rel === MAP_INDEX), 'the index must not be listed as a page')
+  assert.ok(
+    !pages.some((page) => page.rel === MAP_INDEX || page.rel === LEGACY_MAP_INDEX),
+    'the index must not be listed as a page',
+  )
   for (const page of pages) {
     assert.ok(page.title, `${page.rel} should have a title`)
     assert.ok(page.rel.startsWith('docs/features/'), `${page.rel} should be map-relative`)
@@ -92,7 +98,7 @@ test('every reference page is listed once, and the index is not a page', async (
 })
 
 test('the index parses into rows that carry a link', async () => {
-  const indexText = await readFile(join(reference, ...MAP_INDEX.split('/')), 'utf8')
+  const indexText = await readFile(join(reference, ...LEGACY_MAP_INDEX.split('/')), 'utf8')
   const rows = parseIndexRows(indexText)
   assert.ok(rows.length >= 10, `expected index rows, got ${rows.length}`)
   assert.ok(
@@ -214,7 +220,7 @@ test('the scaffold plans every file, then writes it', async () => {
     })
     assert.deepEqual(
       only.entries.map((entry) => entry.target),
-      ['docs/features/README.md'],
+      ['docs/features/index.html'],
     )
   } finally {
     await rm(root, { recursive: true, force: true })

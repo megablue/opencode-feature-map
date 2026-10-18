@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="opencode-feature-map">
+<title>Adoption — bringing an existing project to the workflow — feature map</title>
+<style>
+:root{color-scheme:light dark;--fg:#1d2433;--muted:#5b6475;--bg:#fff;--line:#d8dee9;--accent:#0b6e99;--warn:#8a5a00;--code:#f4f6fa}
+@media (prefers-color-scheme:dark){:root{--fg:#e6eaf2;--muted:#9aa4b8;--bg:#11151c;--line:#2b3342;--accent:#6cc4e8;--warn:#e0b25c;--code:#1a202a}}
+*{box-sizing:border-box}
+body{margin:0 auto;max-width:60rem;padding:2rem 1.25rem 4rem;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
+h1,h2,h3{line-height:1.25;margin:2rem 0 .75rem}
+h1{font-size:1.9rem;border-bottom:2px solid var(--line);padding-bottom:.4rem}
+h2{font-size:1.35rem}
+h3{font-size:1.08rem;color:var(--muted)}
+p,ul,ol,table,pre,blockquote{margin:.75rem 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.1em .3em;border-radius:.25rem;font-size:.92em}
+pre{background:var(--code);border:1px solid var(--line);border-radius:.4rem;padding:.8rem 1rem;overflow:auto}
+pre code{background:none;padding:0}
+pre.verbatim{border-left:4px solid var(--warn)}
+pre.verbatim::before{content:"verbatim — " attr(data-why);display:block;color:var(--warn);font:600 .78rem/1.4 ui-monospace,monospace;margin-bottom:.5rem;white-space:pre-wrap}
+pre.pseudo{border-left:4px solid var(--accent)}
+pre.mermaid{background:var(--bg);border:1px dashed var(--line)}
+p.status{color:var(--muted);font-size:.92rem}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--line);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--code)}
+blockquote{margin-left:0;padding-left:1rem;border-left:3px solid var(--line);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
+.lede{color:var(--muted)}
+</style>
+</head>
+<body>
+<article class="map">
+<h1>Adoption — bringing an existing project to the workflow</h1>
+<p class="status">Status: shipped (0.2.0) · Read when: changing <code>feature_map_adopt</code>, <code>checkMap</code>&#39;s findings, <code>generateIndexRows()</code>, <code>divisibility()</code>, the docs candidates, or anything that writes into a project that already exists</p>
+<section id="what-it-does">
+<h2>What it does</h2>
+<ul><li>Reports what an existing project is missing: pages without the six mandated headings, pages with no <code>Status: … Read when:</code> trigger, index rows that do not resolve, pages no row links, sections too big to read in one piece, <code>AGENTS.md</code> blocks that are absent, and documents under <code>docs/</code> that are not in the map.</li><li>Says which oversized sections are <em>already</em> retrievable at <code>###</code> level, so it never asks for work that has been done.</li><li>Returns a plan whose items are labelled <code>deterministic</code> (derived from what is already in the files) or <code>judgment</code> (a trigger, a heading&#39;s content, a split point — the author&#39;s).</li><li><code>apply: true</code> writes <strong>only files that do not exist</strong>. It has no <code>force</code> and cannot overwrite; its <code>[deterministic]</code> plan item for an existing index names <a href="regen.html">feature_map_regen</a> as the tool that can carry it out.</li><li>A project with no docs and no <code>AGENTS.md</code> is redirected to <code>feature_map_init</code> rather than reported on.</li></ul>
+</section>
+<section id="map">
+<h2>Map</h2>
+<ul><li><code>src/index.ts</code> — the <code>feature_map_adopt</code> tool, <code>withGeneratedIndex()</code>.</li><li><code>src/map.ts</code> — <code>checkMap()</code> (the one conformance computation), <code>generateIndexRows()</code>, <code>renderIndexRow()</code>, <code>renderIndexTable()</code>, <code>TRIGGER_PLACEHOLDER</code>, <code>divisibility()</code>, <code>parseStatusLine()</code>, <code>docsCandidates()</code>, <code>walkDocs()</code>, <code>renderIndexHtmlTable()</code>, <code>PAGE_HEADINGS</code>.</li><li><code>src/regen.ts</code> — <code>rewriteIndexTable()</code>, which is what actually writes the generated rows into an index that already exists.</li><li><code>src/templates.ts</code> — <code>missingBlocks()</code>, <code>readTemplate()</code>.</li><li>Arguments: <code>root</code>, <code>focus</code>, <code>apply</code>.</li><li>Config that shapes it: <code>maxSectionBytes</code>.</li></ul>
+</section>
+<section id="how-why">
+<h2>How &amp; why</h2>
+<p><strong>Three tiers, and only two of them are this page.</strong> Measured across the 13 projects on the DSH machine this port was made from: 11 have no <code>docs/</code> at all (nothing to adopt — <code>feature_map_init</code>), one has an <code>AGENTS.md</code> and no docs (the map and the missing instruction blocks), and two have conformant maps that have outgrown the size rule. A migration feature that ignored the first tier would spend a report telling a code-only project about its missing prose.</p>
+<p><strong>One computation, two renderers.</strong> <code>checkMap()</code> answers &quot;is this page conformant and is this index true&quot; once; <code>feature_map_check</code> renders the drift subset and <code>feature_map_adopt</code> renders the migration plan. Two implementations of &quot;is this page conformant&quot; would be two answers that can disagree, and the premise of the whole plugin is that the map is the cheap, true answer.</p>
+<p><strong>Drift and size are separate verdicts.</strong> <code>clean</code> means the index and the pages agree — what a caller wants after editing the map. Size advice is appended under <code>On size:</code> and does not flip <code>clean</code>. Folding them together made a perfectly consistent map report <code>clean: false</code>, which the acceptance run caught: the reference map was called &quot;drifted&quot; while its index was perfect and only its prose was long.</p>
+<p><strong>Deterministic means derived, and nothing else.</strong> An index row&#39;s trigger comes from the page&#39;s own <code>Status:</code> line; a row for a page without one carries an empty trigger and a flag. The link is relative to the index, the way a relative link resolves it. A duplicate title is flagged rather than picked between. What cannot be derived is not guessed — a plausible-sounding trigger this tool invented would be a wrong answer that reads like a right one, and the trigger is the phrase a later session searches for.</p>
+<h3><code>apply</code> writes only what is absent</h3>
+<p>The scaffold&#39;s four files, with the generated table spliced into the index template&#39;s placeholder row — string surgery on this plugin&#39;s own template, never on a document the project wrote. A project&#39;s <code>AGENTS.md</code> is reported block by block and never edited: a project that has rewritten its <code>Workflow</code> block keeps its version, and gets told which of the template&#39;s blocks it lacks. The condition for the redirect to <code>feature_map_init</code> is &quot;no map, no docs <strong>and</strong> no <code>AGENTS.md</code>&quot; — a project with an instruction file has something to adopt even when its map does not exist yet, which is exactly the case the first version got wrong.</p>
+<p><strong>The one thing this tool cannot do is the reason the next one exists.</strong> An index that already exists is reported on and never written, so the plan item that says &quot;write the generated index rows into the map index&quot; is unexecutable here by construction. Rather than growing a <code>force</code> that would put a second writer on the map, that item points at <code>feature_map_regen</code>, whose <code>rewriteIndexTable()</code> does exactly this and nothing else to the file.</p>
+<h3>Acceptance, run against the real projects</h3>
+<table><thead><tr><th>Project</th><th>Report</th></tr></thead><tbody><tr><td><code>reference/PingLatencyOverlay</code></td><td>13 pages, 0 drift, 11 oversized (10 need splitting, 1 already divides), 2 documents outside the map, <code>check</code> clean</td></tr><tr><td><code>quickstart-chat</code></td><td><code>AGENTS.md</code> present with 5 of 6 template blocks missing; no pages, so the index points at <code>feature_map_init</code></td></tr><tr><td><code>test-server</code></td><td>no docs and no <code>AGENTS.md</code> — redirected to <code>feature_map_init</code></td></tr></tbody></table>
+<h3>Traps</h3>
+<ul><li><code>chunks</code> counts <code>###</code> subsections, not the section&#39;s own lead text. Counting the lead made an 11 KB section with six subsections read as seven chunks; the number a caller acts on is &quot;how many pieces can I ask for&quot;.</li><li>A page with no <code>##</code> headings is one chunk, and <code>divisibility()</code> says so — the degrade-to-one-chunk rule in <a href="map-tool.html">map-tool.html</a> is what keeps such a page out of the &quot;needs splitting&quot; list with a misleading <code>chunks: 0</code>.</li><li><code>docsCandidates()</code> walks all of <code>docs/</code>, so it is opt-in (<code>candidates: true</code>) and off the routine check path.</li><li>Candidates are never moved or converted. <code>docs/SPEC.md</code> is not a feature page, and deciding that <code>docs/GAME.md</code> should become one is a judgement about the project rather than a fact about its files.</li><li>The plan is capped: the page detail shows ten findings and names the rest, and <code>AGENTS.md</code> block text is inlined only when it is small or asked for with <code>focus: &quot;agents&quot;</code> — a migration report that costs more than the migration is its own failure mode.</li><li>A failed <code>apply</code> names the file that blocked it (a blocker <em>file</em> where a directory is needed fails with <code>ENOTDIR</code>) instead of reporting a count — <code>test/contract.test.mjs</code> pins that case.</li></ul>
+</section>
+<section id="config-keys-ui">
+<h2>Config keys / UI</h2>
+<table><thead><tr><th>Argument</th><th>Default</th><th>Range</th><th>Meaning</th></tr></thead><tbody><tr><td><code>root</code></td><td>plugin location directory</td><td>absolute path</td><td>the project to report on</td></tr><tr><td><code>focus</code></td><td><code>all</code></td><td><code>all</code>, <code>index</code>, <code>pages</code>, <code>sizes</code>, <code>agents</code>, <code>candidates</code></td><td>which detail to return</td></tr><tr><td><code>apply</code></td><td><code>false</code></td><td>boolean</td><td>write files that do not exist; never an existing one</td></tr></tbody></table>
+</section>
+<section id="tests-that-pin-it">
+<h2>Tests that pin it</h2>
+<p><code>test/plugin.test.mjs</code>: <code>the reference map is conformant, which is what an adopted project should reach</code>, <code>a section past the limit is judged by how it divides, not by its size</code>, <code>a non-conformant page is reported by what it lacks</code>, <code>generated rows carry the trigger the page already states</code>.</p>
+<p><code>test/contract.test.mjs</code>: <code>adoption writes what is missing and never edits what exists</code> (byte comparison on a project&#39;s own <code>AGENTS.md</code>), <code>a project with nothing is sent to the scaffold instead</code>, <code>documents outside the map are reported and never converted</code>, <code>the checker separates drift from size advice</code>, <code>the drift report asks only for the splits that are really missing</code>.</p>
+</section>
+<section id="related">
+<h2>Related</h2>
+<p><a href="regen.html">regen.html</a> · <a href="map-tool.html">map-tool.html</a> · <a href="templates.html">templates.html</a> · <a href="packaging.html">packaging.html</a></p>
+</section>
+</article>
+
+</body>
+</html>

@@ -22,11 +22,29 @@ import { statSync } from 'node:fs'
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { dirname, isAbsolute, join, posix, relative, resolve, sep } from 'node:path'
 
+import {
+  escapeHtml,
+  htmlTitle,
+  htmlToMapText,
+  isHtmlFile,
+  isMarkdownFile,
+  scanHtml,
+} from './html.js'
+
 /** Directory, relative to the project root, that holds the feature map. */
 export const MAP_DIR = 'docs/features'
 
-/** The index page of the feature map. */
-export const MAP_INDEX = `${MAP_DIR}/README.md`
+/** The index page of a map written in the current format. */
+export const MAP_INDEX_HTML = `${MAP_DIR}/index.html`
+
+/** The index of a map written before the HTML format; still read forever. */
+export const LEGACY_MAP_INDEX = `${MAP_DIR}/README.md`
+
+/** The index a new map gets. */
+export const MAP_INDEX = MAP_INDEX_HTML
+
+/** The index of a legacy map. */
+export const MAP_INDEX_MD = LEGACY_MAP_INDEX
 
 /** Words too common to identify a page. */
 const STOPWORDS = new Set([
@@ -62,8 +80,14 @@ export function tokenize(text) {
 export function findMapRoot(startDir) {
   let dir = resolve(startDir ?? '')
   for (;;) {
-    const index = join(dir, ...MAP_INDEX.split('/'))
-    if (isFile(index)) return { root: dir, indexPath: index }
+    const current = join(dir, ...MAP_INDEX_HTML.split('/'))
+    if (isFile(current)) {
+      return { root: dir, indexPath: current, indexRel: MAP_INDEX_HTML, format: 'html', legacy: false }
+    }
+    const legacy = join(dir, ...LEGACY_MAP_INDEX.split('/'))
+    if (isFile(legacy)) {
+      return { root: dir, indexPath: legacy, indexRel: LEGACY_MAP_INDEX, format: 'markdown', legacy: true }
+    }
     const parent = dirname(dir)
     if (isFile(join(dir, '.git')) || parent === dir) return undefined
     dir = parent
@@ -81,33 +105,56 @@ export function toPosix(from, to) {
 }
 
 /**
- * List every markdown page under the map, excluding the index itself.
+ * List every page under the map, excluding the index and the assets.
+ *
+ * Both formats are read, forever: a project that never runs the upgrade keeps
+ * working, and a project that ran it keeps its old `.md` files beside the new
+ * `.html` ones. When both exist for one stem the HTML page wins, so the
+ * upgrade does not double every entry in the index and in every reply. Files
+ * whose name starts with `_` are the map's own assets (`_map.css`, a partial),
+ * not pages.
  *
  * @param root - absolute project root.
- * @returns one entry per page, with its map-relative path and title.
+ * @returns one entry per page, with its map-relative path, title, text and
+ * format; `text` is the canonical text every reader and size uses.
  */
 export async function listPages(root) {
   const base = join(root, ...MAP_DIR.split('/'))
+  const files = await walkDocs(base)
+  const htmlStems = new Set(
+    files.filter((path) => isHtmlFile(path)).map((path) => toPosix(root, path).replace(/\.html?$/i, '')),
+  )
   const pages = []
-  for (const path of await walkMarkdown(base)) {
+  for (const path of files) {
     const rel = toPosix(root, path)
-    if (rel === MAP_INDEX) continue
-    const text = await readFile(path, 'utf8').catch(() => '')
-    pages.push({ rel, path, title: firstHeading(text) ?? posix.basename(path), text })
+    if (rel === MAP_INDEX_HTML || rel === LEGACY_MAP_INDEX) continue
+    if (posix.basename(rel).startsWith('_')) continue
+    if (isMarkdownFile(path) && htmlStems.has(rel.replace(/\.md$/i, ''))) continue
+    const raw = await readFile(path, 'utf8').catch(() => '')
+    const format = isHtmlFile(path) ? 'html' : 'markdown'
+    const text = format === 'html' ? htmlToMapText(raw) : raw
+    pages.push({
+      rel,
+      path,
+      title: firstHeading(text) ?? (format === 'html' ? htmlTitle(raw) : undefined) ?? posix.basename(path).replace(/\.(md|html?)$/i, ''),
+      text,
+      format,
+      ...(format === 'html' ? { html: raw } : {}),
+    })
   }
   pages.sort((a, b) => a.rel.localeCompare(b.rel))
   return pages
 }
 
-/** Every markdown file under a directory, recursively, in path order. */
-async function walkMarkdown(dir) {
+/** Every Markdown and HTML file under a directory, recursively, in path order. */
+async function walkDocs(dir) {
   const files = []
   const walk = async (current) => {
     const entries = await readdir(current, { withFileTypes: true }).catch(() => [])
     for (const entry of entries) {
       const path = join(current, entry.name)
       if (entry.isDirectory()) await walk(path)
-      else if (entry.name.toLowerCase().endsWith('.md')) files.push(path)
+      else if (isMarkdownFile(entry.name) || isHtmlFile(entry.name)) files.push(path)
     }
   }
   await walk(dir)
@@ -115,7 +162,29 @@ async function walkMarkdown(dir) {
 }
 
 /**
- * Markdown under `docs/` that is not a page of the map.
+ * Read the map's index in its canonical text form, whichever format it is in.
+ *
+ * @param root - absolute project root.
+ * @returns the index's rel path, absolute path, format, legacy flag and text.
+ */
+export async function readMapIndex(root) {
+  const found = findMapRoot(root)
+  const rel = found?.indexRel ?? MAP_INDEX
+  const path = found?.indexPath ?? join(root, ...MAP_INDEX.split('/'))
+  const format = found?.format ?? 'html'
+  const raw = await readFile(path, 'utf8').catch(() => '')
+  return {
+    rel,
+    path,
+    format,
+    legacy: Boolean(found?.legacy),
+    raw,
+    text: format === 'html' ? htmlToMapText(raw) : raw,
+  }
+}
+
+/**
+ * Markdown or HTML under `docs/` that is not a page of the map.
  *
  * Reported, never touched. A `docs/SPEC.md` is not a feature page, and deciding
  * that `docs/GAME.md` should become one is a judgement about the project rather
@@ -129,13 +198,14 @@ export async function docsCandidates(root) {
   const docsRoot = join(root, 'docs')
   const mapRoot = join(root, ...MAP_DIR.split('/'))
   const candidates = []
-  for (const path of await walkMarkdown(docsRoot)) {
+  for (const path of await walkDocs(docsRoot)) {
     const inside = relative(mapRoot, path)
     if (!inside.startsWith('..') && !isAbsolute(inside)) continue
-    const text = await readFile(path, 'utf8').catch(() => '')
+    const raw = await readFile(path, 'utf8').catch(() => '')
+    const text = isHtmlFile(path) ? htmlToMapText(raw) : raw
     candidates.push({
       rel: toPosix(root, path),
-      title: firstHeading(text) ?? posix.basename(path),
+      title: firstHeading(text) ?? posix.basename(path).replace(/\.(md|html?)$/i, ''),
       bytes: Buffer.byteLength(text, 'utf8'),
       sections: splitSections(text).sections.length,
     })
@@ -254,10 +324,11 @@ export function parseIndexRows(indexText) {
  * @returns one row per page, with duplicate labels and missing triggers marked.
  */
 export function generateIndexRows(pages, options = {}) {
-  const indexDir = dirname(options.indexPath ?? join(MAP_DIR, 'README.md'))
+  const indexDir = dirname(options.indexPath ?? join(MAP_DIR, 'index.html'))
   const rows = pages.map((page) => {
     const status = parseStatusLine(page.text)
-    const label = page.title || posix.basename(page.rel).replace(/\.md$/i, '')
+    const label =
+      page.title || posix.basename(page.rel).replace(/\.(md|html?)$/i, '')
     return {
       feature: label,
       doc: relative(indexDir, page.path).split(sep).join(posix.sep),
@@ -305,6 +376,26 @@ export function renderIndexRow(row, columns = 3) {
 export function renderIndexTable(rows) {
   const header = ['| Feature | Doc | Read when |', '| --- | --- | --- |']
   return [...header, ...rows.map((row) => renderIndexRow(row))].join('\n')
+}
+
+/**
+ * Render generated rows as the HTML table's body.
+ *
+ * The HTML index carries a marked row where its rows go, so scaffolding and
+ * adoption can fill it without rewriting the project's prose around it.
+ *
+ * @param rows - rows from {@link generateIndexRows}.
+ * @returns one `<tr>` per row.
+ */
+export function renderIndexHtmlTable(rows) {
+  return rows
+    .map(
+      (row) =>
+        `<tr><td>${escapeHtml(row.feature)}</td><td><a href="${escapeHtml(row.doc)}">${escapeHtml(
+          posix.basename(row.doc),
+        )}</a></td><td>${escapeHtml(row.when || '')}</td></tr>`,
+    )
+    .join('\n')
 }
 
 /**
@@ -538,13 +629,16 @@ export function selectSections(sections, names) {
 export function findPage(pages, query) {
   const wanted = String(query ?? '').trim().toLowerCase().replace(/^\.\//, '')
   if (!wanted) return { matches: [] }
-  const exact = pages.filter(
-    (page) =>
+  const base = posix.basename(wanted).replace(/\.(md|html?)$/i, '')
+  const exact = pages.filter((page) => {
+    const name = posix.basename(page.rel).toLowerCase()
+    return (
       page.rel.toLowerCase() === wanted ||
       page.rel.toLowerCase() === `${MAP_DIR}/${wanted}` ||
-      posix.basename(page.rel).toLowerCase() === wanted ||
-      posix.basename(page.rel).toLowerCase() === `${wanted}.md`,
-  )
+      name === wanted ||
+      name.replace(/\.(md|html?)$/i, '') === base
+    )
+  })
   if (exact.length) return { matches: exact }
   const partial = pages.filter(
     (page) =>
@@ -576,10 +670,11 @@ export function findPage(pages, query) {
  * documents that are not in the map at all.
  */
 export async function checkMap(root, options = {}) {
-  const indexPath = join(root, ...MAP_INDEX.split('/'))
+  const index = await readMapIndex(root)
+  const indexPath = index.path
+  const indexText = index.text
   const mapRoot = join(root, ...MAP_DIR.split('/'))
   const maxSectionBytes = options.maxSectionBytes ?? 2048
-  const indexText = await readFile(indexPath, 'utf8').catch(() => '')
   const rows = parseIndexRows(indexText)
   const pages = await listPages(root)
   const linked = new Set()
@@ -609,11 +704,21 @@ export async function checkMap(root, options = {}) {
   const findings = []
   const oversized = []
   const splits = []
+  const review = []
   let largest
   for (const page of pages) {
     const { sections } = splitSections(page.text)
     const have = new Set(sections.map((section) => section.heading))
     const status = parseStatusLine(page.text)
+    const scan = page.format === 'html' ? scanHtml(page.html) : { verbatimWithoutWhy: [], fromLanguage: [], graphs: 0 }
+    if (scan.verbatimWithoutWhy.length || scan.fromLanguage.length) {
+      review.push({
+        page: page.rel,
+        verbatimWithoutWhy: scan.verbatimWithoutWhy.length,
+        fromLanguage: scan.fromLanguage.length,
+        languages: [...new Set(scan.fromLanguage)],
+      })
+    }
     const big = []
     for (const section of sections) {
       if (!largest || section.bytes > largest.bytes) {
@@ -634,6 +739,7 @@ export async function checkMap(root, options = {}) {
     findings.push({
       rel: page.rel,
       title: page.title,
+      format: page.format,
       bytes: Buffer.byteLength(page.text, 'utf8'),
       sections: sections.length,
       missingHeadings: PAGE_HEADINGS.filter((heading) => !have.has(heading)),
@@ -641,12 +747,16 @@ export async function checkMap(root, options = {}) {
       trigger: status?.trigger,
       linked: linked.has(page.rel),
       oversized: big,
+      graphs: scan.graphs,
     })
   }
 
   return {
     indexPath,
-    indexExists: indexText !== '',
+    indexRel: index.rel,
+    indexFormat: index.format,
+    legacy: index.legacy,
+    indexExists: index.raw !== '',
     rows,
     pages,
     findings,
@@ -655,6 +765,8 @@ export async function checkMap(root, options = {}) {
     untitled: pages.filter((page) => !firstHeading(page.text)).map((page) => page.rel),
     oversized,
     splits,
+    review,
+    graphs: findings.reduce((total, finding) => total + finding.graphs, 0),
     largest,
     rowsWithoutTrigger: rows.filter((row) => !row.when).length,
     pagesWithoutTrigger: findings.filter((finding) => !finding.trigger).map((finding) => finding.rel),

@@ -72,9 +72,9 @@ export const TEMPLATES = [
   },
   {
     id: 'feature-map',
-    source: 'docs/features/README.md.tmpl',
-    target: 'docs/features/README.md',
-    what: 'the feature map: one page per feature, and the page template',
+    source: 'docs/features/index.html.tmpl',
+    target: 'docs/features/index.html',
+    what: 'the feature map: one HTML page per feature, and the page template',
   },
   {
     id: 'spec',

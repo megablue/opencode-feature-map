@@ -13,7 +13,8 @@
  *    index and the pages have drifted apart;
  * 3. `feature_map_regen`, which rewrites a map that has outgrown the shape the
  *    reader needs, dividing the long sections and marking the headings only an
- *    author can name;
+ *    author can name; and `feature_map_upgrade`, which writes the HTML siblings
+ *    of a legacy Markdown map without deleting the sources;
  * 4. a permission guard that denies the first source lookup of a session with
  *    the instruction that clears it.
  *
@@ -37,8 +38,10 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { Plugin } from '@opencode/plugin'
 
 import {
+  LEGACY_MAP_INDEX,
   MAP_DIR,
   MAP_INDEX,
+  MAP_INDEX_HTML,
   TIER1_SECTIONS,
   capText,
   checkMap,
@@ -51,6 +54,8 @@ import {
   parseIndexRows,
   rankPages,
   rankSections,
+  readMapIndex,
+  renderIndexHtmlTable,
   renderIndexTable,
   selectSections,
   splitSections,
@@ -64,6 +69,7 @@ import {
   templateVariables,
 } from './templates.js'
 import { applyRegen, planRegen } from './regen.js'
+import { applyUpgrade, planUpgrade, renderUpgradeText } from './upgrade.js'
 
 /**
  * Plugin id, as loader diagnostics and the command registry see it.
@@ -75,7 +81,10 @@ import { applyRegen, planRegen } from './regen.js'
 const PLUGIN_ID = 'feature-map'
 
 /** The section text. Static, so a provider cache sees the same bytes all session. */
-const SECTION_TEXT = `Work from the project's feature map before the source. \`docs/features/\` holds one page per feature — its files, types, tests and traps — and \`docs/features/README.md\` is the index. Call \`feature_map\` first: with a \`topic\` it returns the sections that name the files, functions and tests for that area, not the whole page; add \`page\` and \`section\` for one section, or \`full: true\` when the mechanism itself is the question. Read the map before grepping or opening source in the area; when it does not cover something you worked out, write that section in the same commit — and keep a section under about two kilobytes, because a section is what a later session reads on its own. \`feature_map_init\` hands the whole set to a project that has none; \`feature_map_regen\` rewrites a map that has outgrown that shape, dividing the long sections and marking the headings only you can name; \`feature_map_check\` reports drift, and the sections that have outgrown a single read.`
+const SECTION_TEXT = `Work from the project's feature map before the source. \`docs/features/\` holds one page per feature — its files, types, tests and traps — and \`docs/features/index.html\` is the index (a legacy \`README.md\` is still read; \`feature_map_upgrade\` converts it). Call \`feature_map\` first: with a \`topic\` it returns the sections that name the files, functions and tests for that area, not the whole page; add \`page\` and \`section\` for one section, or \`full: true\` when the mechanism itself is the question. Read the map before grepping or opening source in the area; when it does not cover something you worked out, write that section in the same commit — and keep a section under about two kilobytes, because a section is what a later session reads on its own. Pages are HTML: \`<pre class="pseudo">\` is the default for a code-shaped block, \`<pre class="verbatim" data-why="…">\` is only for bytes that must not change, and \`<pre class="mermaid">\` draws a graph the tool reduces to an edge list. \`feature_map_init\` hands the whole set to a project that has none; \`feature_map_upgrade\` converts a Markdown map to HTML; \`feature_map_regen\` rewrites a map that has outgrown that shape, dividing the long sections and marking the headings only you can name; \`feature_map_check\` reports drift, and the sections that have outgrown a single read.`
+
+/** The line a legacy map's every reply carries until it is converted. */
+const LEGACY_NOTICE = `[legacy map — \`${LEGACY_MAP_INDEX}\` is still Markdown. It reads normally; \`feature_map_upgrade\` writes the same pages as HTML, leaving the \`.md\` files in place.]`
 
 /** Instruction files a session may always read: they are how a project talks. */
 const DEFAULT_EXEMPT = ['docs/', 'AGENTS.md', 'CLAUDE.md', 'HANDOFF.md', 'README.md']
@@ -471,7 +480,7 @@ async function setup(ctx) {
     return state
   }
 
-  /** The five tool definitions, registered in one transform after they exist. */
+  /** The six tool definitions, registered in one transform after they exist. */
   const tools: any[] = []
 
   if (settings.mode !== 'off') {
@@ -556,15 +565,15 @@ async function setup(ctx) {
         return {
           kind: 'absent',
           text: bare
-            ? `\`${MAP_DIR}/\` exists here but has no \`README.md\` index, so there is no map to read. \`feature_map_init\` writes the index and the page template.`
-            : `No \`${MAP_INDEX}\` in this project (searched upward from ${
+            ? `\`${MAP_DIR}/\` exists here but has no \`index.html\` (or legacy \`README.md\`), so there is no map to read. \`feature_map_init\` writes the index and the page template.`
+            : `No \`${MAP_INDEX}\` (or legacy \`${LEGACY_MAP_INDEX}\`) in this project (searched upward from ${
                 cwd ?? 'the session directory'
               }). Work from the source, and consider \`feature_map_init\` to start the map.`,
         }
       }
-      const indexText = existsSync(found.indexPath) ? await readFileText(found.indexPath) : ''
+      const index = await readMapIndex(found.root)
       const pages = await listPages(found.root)
-      const reply = renderMapReply(found.root, indexText, pages, {
+      const reply = renderMapReply(found.root, index.text, pages, {
         topic: typeof args?.topic === 'string' ? args.topic : undefined,
         page: typeof args?.page === 'string' ? args.page : undefined,
         section: typeof args?.section === 'string' ? args.section : undefined,
@@ -576,7 +585,12 @@ async function setup(ctx) {
         sectionsPerTopic: settings.sectionsPerTopic,
         tier: TIER1_SECTIONS,
       })
-      return { ...reply, root: found.root, index: MAP_INDEX }
+      return {
+        ...reply,
+        text: found.legacy ? `${reply.text}\n\n${LEGACY_NOTICE}` : reply.text,
+        root: found.root,
+        index: found.indexRel,
+      }
     },
   }))
 
@@ -596,6 +610,7 @@ async function setup(ctx) {
           root: { type: 'string' },
           rows: { type: 'integer' },
           pages: { type: 'integer' },
+          legacy: { type: 'boolean' },
           oversized: {
             type: 'array',
             items: {
@@ -618,7 +633,9 @@ async function setup(ctx) {
     },
     execute: async (_args, context) => {
       const found = findMapRoot(locationRoot)
-      if (!found) return { clean: false, text: `No \`${MAP_INDEX}\` in this project.` }
+      if (!found) {
+        return { clean: false, legacy: false, text: `No \`${MAP_INDEX}\` (or legacy \`${LEGACY_MAP_INDEX}\`) in this project.` }
+      }
       const report = await checkMap(found.root, { maxSectionBytes: settings.maxSectionBytes })
       const drift = [
         ...report.unindexed.map((page) => `- \`${page}\` is not linked from the index`),
@@ -642,19 +659,28 @@ async function setup(ctx) {
             ]
           : []),
       ]
+      const reviewNotes = report.review.map(
+        (entry) =>
+          `- \`${entry.page}\` has ${entry.fromLanguage} pseudo block(s) converted from code${
+            entry.languages.length ? ` (${entry.languages.join(', ')})` : ''
+          }${entry.verbatimWithoutWhy ? ` and ${entry.verbatimWithoutWhy} verbatim block(s) with no \`data-why\`` : ''} — review them as prose`,
+      )
       const largest = report.largest
         ? ` The largest section is \`${report.largest.heading}\` in \`${report.largest.page}\` at ${report.largest.bytes} B.`
         : ''
       const sizeNote = notes.length ? `\n\nOn size:\n${notes.join('\n')}` : ''
+      const codeNote = reviewNotes.length ? `\n\nOn code:\n${reviewNotes.join('\n')}` : ''
+      const legacy = report.legacy ? `\n\n${LEGACY_NOTICE}` : ''
       return {
         clean: drift.length === 0,
+        legacy: report.legacy,
         root: found.root,
         rows: report.rows.length,
         pages: report.pages.length,
         oversized: report.oversized,
         text: drift.length
-          ? `The map has drifted:\n${drift.join('\n')}${sizeNote}`
-          : `The map agrees with itself: ${report.rows.length} index rows, ${report.pages.length} pages, every page linked and every link resolving.${largest}${sizeNote}`,
+          ? `The map has drifted:\n${drift.join('\n')}${sizeNote}${codeNote}${legacy}`
+          : `The map agrees with itself: ${report.rows.length} index rows, ${report.pages.length} pages, every page linked and every link resolving.${largest}${sizeNote}${codeNote}${legacy}`,
       }
     },
   }))
@@ -1131,6 +1157,92 @@ async function setup(ctx) {
     },
   }))
 
+  tools.push(toolDef({
+    name: 'feature_map_upgrade',
+    description:
+      "Convert a legacy Markdown feature map to the HTML format: every `.md` page gets an `.html` sibling, `docs/features/README.md` becomes `docs/features/index.html`, and internal `.md` links are rewritten. Both formats stay readable, and the HTML page wins when a stem has both; `.md` files are kept unless `prune: true`. A fenced block with a language becomes pseudocode (the default for a code-shaped block) and is reported for review; a `verbatim` block without a reason gets a visible placeholder. Read-only by default; `apply: true` writes, `force` overwrites existing `.html`.",
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        root: {
+          type: 'string',
+          description: 'Project root. Defaults to the session working directory.',
+        },
+        apply: {
+          type: 'boolean',
+          description: 'Write the HTML files instead of only returning the plan.',
+        },
+        prune: {
+          type: 'boolean',
+          description: 'Remove each `.md` source after its `.html` sibling is written.',
+        },
+        force: {
+          type: 'boolean',
+          description: 'Overwrite an `.html` file that already exists.',
+        },
+      },
+    },
+    output: {
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['text'],
+        properties: {
+          text: { type: 'string' },
+          root: { type: 'string' },
+          wrote: { type: 'array', items: { type: 'string' } },
+          skipped: { type: 'array', items: { type: 'string' } },
+          removed: { type: 'array', items: { type: 'string' } },
+          flagged: { type: 'integer' },
+          verbatim: { type: 'integer' },
+        },
+      },
+      render: (_args, value) => [{ type: 'text', text: value.text }],
+    },
+    execute: async (args, context) => {
+      const cwd = locationRoot
+      const root = resolve(typeof args?.root === 'string' && args.root ? args.root : cwd)
+      sessionState(context.sessionID).consulted = true
+      const plan = await planUpgrade(root, {
+        force: args?.force === true,
+        prune: args?.prune === true,
+      })
+      if (plan.absent || plan.counts.writes === 0) {
+        return {
+          root: plan.root,
+          text: renderUpgradeText(plan),
+          wrote: [],
+          skipped: plan.entries.map((entry) => entry.targetRel),
+          removed: [],
+          flagged: plan.flagged.length,
+          verbatim: plan.verbatim.length,
+        }
+      }
+      if (args?.apply !== true) {
+        return {
+          root: plan.root,
+          text: renderUpgradeText(plan),
+          wrote: [],
+          skipped: plan.entries.filter((entry) => entry.status === 'exists').map((entry) => entry.targetRel),
+          removed: [],
+          flagged: plan.flagged.length,
+          verbatim: plan.verbatim.length,
+        }
+      }
+      const result = await applyUpgrade(plan, writeThrough())
+      return {
+        root: plan.root,
+        text: renderUpgradeText(plan, result),
+        wrote: result.written.map((entry) => entry.targetRel),
+        skipped: result.skipped.map((entry) => entry.targetRel),
+        removed: result.removed,
+        flagged: plan.flagged.length,
+        verbatim: plan.verbatim.length,
+      }
+    },
+  }))
+
   if (settings.mode === 'enforce') {
     // The guard is a permission hook rather than a tool guard: OpenCode routes
     // the `read`, `glob` and `grep` actions through the permission domain, and
@@ -1186,6 +1298,10 @@ function lastSegment(path) {
  * on rather than rewritten.
  */
 function withGeneratedIndex(content, rows) {
+  const htmlPlaceholder = /<tr[^>]*data-placeholder="row"[^>]*>[\s\S]*?<\/tr>/
+  if (htmlPlaceholder.test(content)) {
+    return content.replace(htmlPlaceholder, renderIndexHtmlTable(rows))
+  }
   const placeholder = /^\| <!-- Feature name -->.*$/m
   return placeholder.test(content) ? content.replace(placeholder, renderIndexTable(rows)) : content
 }
@@ -1223,8 +1339,10 @@ function writeThrough() {
  * not as prose, because naming them is the next action.
  */
 function renderRegenText(plan, options: Record<string, any> = {}) {
-  const index = plan.entries.find((entry) => entry.rel === MAP_INDEX)
-  const pages = plan.entries.filter((entry) => entry.rel !== MAP_INDEX)
+  const index =
+    plan.entries.find((entry) => entry.kind === 'index') ??
+    plan.entries.find((entry) => entry.rel === plan.indexRel)
+  const pages = plan.entries.filter((entry) => entry !== index)
   const changed = pages.filter((entry) => entry.status === 'changed')
   const placeholders = []
   const authors = []
@@ -1357,6 +1475,15 @@ function toolDef(definition) {
     description: definition.description,
     input: definition.parameters,
     output: definition.output?.schema,
+    // A registered tool is not an offered tool. The host's request carries the
+    // registry's `codemode: false` entries by name; every other tool is
+    // reachable only through the code-mode `execute` wrapper, so a model told
+    // to call `feature_map` is answered "no such tool" while the plugin loads,
+    // pushes its instruction and fires its guard as usual. Observed, not
+    // deduced: a sibling plugin whose tool sets this flag is called by name in
+    // the same session, and `@opencode/schema`'s `Options` type makes
+    // `codemode?: true` the default branch.
+    options: { codemode: false },
     execute: async (args, context) => {
       const reply = await definition.execute(args, context)
       return {
@@ -1498,6 +1625,11 @@ function buildCommands(ctx: any, tools: any[]) {
     command(
       'feature-map-regen',
       'Rewrite an existing map so it reads one section at a time: the missing headings, a Status line, every oversized section divided into `###` chunks, the index reconciled. Plan by default; `show` returns the rewritten text, `apply` writes it.',
+      (text) => parseArgs(text).args,
+    ),
+    command(
+      'feature-map-upgrade',
+      'Convert a legacy Markdown map to HTML — one `.html` page per `.md` page, `index.html` for the index, `.md` links rewritten. Plan by default; `apply` writes, `prune` also removes the `.md` sources, `force` overwrites existing HTML.',
       (text) => parseArgs(text).args,
     ),
   ]

@@ -11,7 +11,11 @@ User-visible behavior only. Mechanism, files and traps live in
 - **A standing instruction.** Once the plugin is installed, every agent that can
   read files is told, in its system prompt, to work from `docs/features/` before
   the source: the map holds one page per feature with that area's files, types,
-  tests and traps, and `docs/features/README.md` is the index. An agent whose
+  tests and traps, and `docs/features/index.html` is the index. Pages are HTML
+  documents; the agent receives them as compact text, with code-shaped blocks as
+  pseudocode unless a block says why its exact bytes matter, and a graph as an
+  edge list. A map written as `docs/features/README.md` plus `.md` pages is still
+  read. An agent whose
   profile has restricted the filesystem tools away is told nothing — the rule is
   dropped rather than left as noise it cannot act on.
 - **A tool that answers with the map, at the size of the question.** A read can
@@ -30,8 +34,9 @@ User-visible behavior only. Mechanism, files and traps live in
   Every answer names what it left out and the call that reaches it. It reads the
   project's own documents; it holds no index of its own and answers nothing the
   map does not already say.
-- **The same five, as commands.** `/feature-map`, `/feature-map-check`,
-  `/feature-map-init`, `/feature-map-adopt` and `/feature-map-regen` run the
+- **The same six, as commands.** `/feature-map`, `/feature-map-check`,
+  `/feature-map-init`, `/feature-map-adopt`, `/feature-map-regen` and
+  `/feature-map-upgrade` run the
   tool behind each name with the arguments typed after it and deliver the reply
   into the session as a message — the same text the tool would have returned,
   without a model turn to say it.
@@ -67,6 +72,30 @@ User-visible behavior only. Mechanism, files and traps live in
   `<!-- chunk 1/2: name this -->`. It adds, removes and rewords no prose, moves
   nothing between sections, and touches nothing outside `docs/features/`.
   Nothing is written until `apply` is passed, and a second run changes nothing.
+- **A way to convert a legacy map.** `feature_map_upgrade` reports the HTML files
+  a Markdown map would become: one `.html` sibling per `.md` page and
+  `index.html` for `README.md`, with internal links rewritten. `apply` writes
+  them, `prune` removes the `.md` sources, and `force` overwrites an existing
+  HTML file. Without `prune` the old files stay, both formats keep working, and
+  the HTML page wins when a stem has both. Both the plan and every legacy-map
+  reply say the map is still Markdown.
+- **A review note on code blocks.** `feature_map_check` reports pseudocode that
+  was converted from a real language and `verbatim` blocks with no `data-why`
+  reason, under `On code:` rather than as drift.
+
+## Page format
+
+A page is an HTML document with an `h1` title, a `p class="status"` line and one
+`section` per `h2`. The headings are what the tools address, so the skeleton is
+fixed in the same way the Markdown one was. The agent never receives the markup:
+replies are rendered to text and every size is measured there. A person opening
+the file sees a styled page, working links and a drawn graph.
+
+A code-shaped block is `<pre class="pseudo">` — pseudocode is the default, and a
+fence converted from a language keeps that language in `data-from-lang`.
+`<pre class="verbatim" data-why="…">` is for bytes that must survive exactly, and
+the reason is required. `<pre class="mermaid">` is a graph; the browser loads the
+renderer from a CDN and the agent is given the edge list.
 
 ## Modes
 
@@ -83,8 +112,8 @@ Tools and commands are available in every mode.
 - The plugin never parses a project's source, caches a symbol index, or infers
   a file path from a feature name. If the map is silent, the plugin is silent.
 - The map is found by walking up from the session's location directory,
-  stopping at the project root: a `docs/features/README.md` in an unrelated
-  ancestor directory is not this project's map.
+  stopping at the project root: a `docs/features/index.html` (or legacy
+  `README.md`) in an unrelated ancestor directory is not this project's map.
 - A reply is capped at a byte budget (12 KB by default). A capped reply says
   where it stopped and how to resume; the offset it reports always advances, so
   even one oversized section can be read to its end in a few calls.
@@ -93,6 +122,6 @@ Tools and commands are available in every mode.
 - The plugin runs inside the OpenCode server, under the authority of the user
   who installed it, so reading the map and writing the boilerplate are both
   plain filesystem operations. There is no sandbox seam to write through, and
-  no user interface of its own: no settings page, no panel — the five commands
+  no user interface of its own: no settings page, no panel - the six commands
   above are the whole surface. Its configuration is the plugin options entry in
   `opencode.json(c)`.

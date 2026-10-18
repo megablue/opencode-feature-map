@@ -11,10 +11,9 @@
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { MAP_INDEX, checkMap, findMapRoot, listPages, parseIndexRows, rankPages } from '../dist/map.js'
+import { MAP_INDEX, checkMap, findMapRoot, listPages, parseIndexRows, rankPages, readMapIndex } from '../dist/map.js'
 import { TEMPLATES, TEMPLATE_DIR, planScaffold, templateVariables } from '../dist/templates.js'
 import { planRegen } from '../dist/regen.js'
-import { readFile } from 'node:fs/promises'
 
 const here = fileURLToPath(new URL('.', import.meta.url))
 const target = resolve(process.argv[2] ?? join(here, '..', 'reference', 'PingLatencyOverlay'))
@@ -26,11 +25,13 @@ console.log(`map probe: ${target}\n`)
 const found = findMapRoot(target)
 line('map root', found ? found.root : '(none)')
 if (!found) {
-  console.log(`\nNo ${MAP_INDEX} at or above this directory.`)
+  console.log(`\nNo ${MAP_INDEX} (or legacy docs/features/README.md) at or above this directory.`)
 } else {
-  const indexText = await readFile(found.indexPath, 'utf8').catch(() => '')
+  const index = await readMapIndex(found.root)
+  const indexText = index.text
   const pages = await listPages(found.root)
   const rows = parseIndexRows(indexText)
+  line('index', `${index.rel} (${index.format}${index.legacy ? ', legacy' : ''})`)
   line('index bytes', Buffer.byteLength(indexText, 'utf8'))
   line('index rows', rows.length)
   line('pages', pages.length)

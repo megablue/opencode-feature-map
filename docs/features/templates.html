@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="opencode-feature-map">
+<title>The boilerplate — the documents this plugin hands to a new project — feature map</title>
+<style>
+:root{color-scheme:light dark;--fg:#1d2433;--muted:#5b6475;--bg:#fff;--line:#d8dee9;--accent:#0b6e99;--warn:#8a5a00;--code:#f4f6fa}
+@media (prefers-color-scheme:dark){:root{--fg:#e6eaf2;--muted:#9aa4b8;--bg:#11151c;--line:#2b3342;--accent:#6cc4e8;--warn:#e0b25c;--code:#1a202a}}
+*{box-sizing:border-box}
+body{margin:0 auto;max-width:60rem;padding:2rem 1.25rem 4rem;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
+h1,h2,h3{line-height:1.25;margin:2rem 0 .75rem}
+h1{font-size:1.9rem;border-bottom:2px solid var(--line);padding-bottom:.4rem}
+h2{font-size:1.35rem}
+h3{font-size:1.08rem;color:var(--muted)}
+p,ul,ol,table,pre,blockquote{margin:.75rem 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.1em .3em;border-radius:.25rem;font-size:.92em}
+pre{background:var(--code);border:1px solid var(--line);border-radius:.4rem;padding:.8rem 1rem;overflow:auto}
+pre code{background:none;padding:0}
+pre.verbatim{border-left:4px solid var(--warn)}
+pre.verbatim::before{content:"verbatim — " attr(data-why);display:block;color:var(--warn);font:600 .78rem/1.4 ui-monospace,monospace;margin-bottom:.5rem;white-space:pre-wrap}
+pre.pseudo{border-left:4px solid var(--accent)}
+pre.mermaid{background:var(--bg);border:1px dashed var(--line)}
+p.status{color:var(--muted);font-size:.92rem}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--line);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--code)}
+blockquote{margin-left:0;padding-left:1rem;border-left:3px solid var(--line);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
+.lede{color:var(--muted)}
+</style>
+</head>
+<body>
+<article class="map">
+<h1>The boilerplate — the documents this plugin hands to a new project</h1>
+<p class="status">Status: shipped (0.2.0) · Read when: editing <code>templates/</code>, <code>src/templates.ts</code>, <code>feature_map_init</code>, or the placeholder set</p>
+<section id="what-it-does">
+<h2>What it does</h2>
+<ul><li>Ships four documents: <code>AGENTS.md</code> (process and hard rules), <code>HANDOFF.md</code> (volatile session state), <code>docs/SPEC.md</code> (user-visible behavior) and <code>docs/features/index.html</code> (the map index and the page template).</li><li><code>feature_map_init</code> renders them with the project&#39;s name and summary and, by default, returns their content for the caller to write with its own tools.</li><li><code>feature_map_init</code> with <code>write: true</code> writes them to the filesystem.</li><li>Refuses to replace a file that exists unless <code>force: true</code>, and reports what it left alone.</li></ul>
+</section>
+<section id="map">
+<h2>Map</h2>
+<ul><li><code>templates/AGENTS.md.tmpl</code>, <code>templates/HANDOFF.md.tmpl</code>, <code>templates/docs/SPEC.md.tmpl</code>, <code>templates/docs/features/index.html.tmpl</code>.</li><li><code>src/templates.ts</code> — <code>TEMPLATES</code>, <code>TEMPLATE_DIR</code>, <code>packageRoot()</code>, <code>substitute()</code>, <code>templateVariables()</code>, <code>targetPath()</code>, <code>planScaffold()</code>, <code>applyScaffold()</code>, <code>SUMMARY_PLACEHOLDER</code>.</li><li><code>src/index.ts</code> — the <code>feature_map_init</code> tool, and <code>writeThrough()</code>, the seam every writing tool shares.</li></ul>
+</section>
+<section id="how-why">
+<h2>How &amp; why</h2>
+<p><strong>The index template is HTML, and carries the page skeleton.</strong> A project gets <code>docs/features/index.html</code> with the row table, the reading order and a <code>verbatim</code> block holding the page skeleton, so the format is visible in the file a new project opens first. The marked <code>&lt;tr data-placeholder="row"&gt;</code> is what <code>feature_map_init</code> and <code>feature_map_adopt</code> splice generated rows into; the prose around it is never rewritten.</p>
+<p><strong>The <code>.tmpl</code> suffix is load-bearing in the host that reads instructions.</strong> OpenCode loads <code>AGENTS.md</code> from the project root down to the working directory, and the same is true of other harnesses — so a file named <code>templates/AGENTS.md</code> in this repository would be injected as live instructions into every session working here — with <code>{{PROJECT_NAME}}</code> unsubstituted and the guidance comments still in it. The suffix is the entire mechanism that keeps the boilerplate data rather than instructions, which is why <code>the shipped boilerplate keeps its .tmpl suffix and never claims an instruction name</code> is a test rather than a convention. (This was not hypothetical on the DSH host: the first draft of <code>templates/AGENTS.md</code> was loaded as instructions within seconds of being written.)</p>
+<p>An unresolved placeholder stays visible. <code>substitute()</code> reports the names it had no value for and leaves the token in place, because a silently blanked <code>{{PROJECT_NAME}}</code> produces a document that looks finished and says nothing — and the report is what lets <code>feature_map_init</code> tell the caller which tokens to fill in.</p>
+<p>The plan is the default and the write is opt-in. <code>planScaffold()</code> renders every file, checks what exists, and returns the content; the caller can then write it with the tools it already has, or ask for <code>write: true</code>.</p>
+<h3>The templates directory is resolved from the package root</h3>
+<p><code>TEMPLATE_DIR</code> is <code>join(packageRoot(), &#39;templates&#39;)</code>, where <code>packageRoot()</code> walks up from this module to the nearest <code>package.json</code> — not the DSH original&#39;s fixed <code>../templates/</code> hop. An installed copy is not guaranteed to keep the built layout: OpenCode&#39;s loader was observed resolving a plugin entry to a flattened root <code>index.js</code>, and a module at the package root then resolved <code>../templates/</code> one directory <em>above</em> the package. Every <code>feature_map_init</code> and <code>feature_map_adopt</code> call died on an ENOENT for <code>AGENTS.md.tmpl</code> — three sessions, each a 500 on the command request. The package root is the one location a <code>dist/</code> module, a root module and a <code>src/</code> module share, so one rule covers all three, and both layouts are pinned by a test rather than by an argument.</p>
+<h3>The write seam has no sandbox policy to carry — and keeps the rule it taught</h3>
+<p><code>writeThrough()</code> in <code>src/index.ts</code> is the one place every writing tool goes through: <code>feature_map_init</code>&#39;s <code>write</code>, <code>feature_map_adopt</code>&#39;s <code>apply</code> and <code>feature_map_regen</code>&#39;s <code>apply</code> all hand it their content. On the DSH host it resolved paths with <code>ctx.fs.resolve()</code> and wrote with <code>ctx.fs.writeText()</code>, carrying the session&#39;s sandbox policy per call — because a write is exactly the operation a sandbox policy exists to decide. An OpenCode plugin runs inside the server under the installing user&#39;s authority, so the seam is now a plain <code>mkdir</code> + <code>writeFile</code> on <code>node:fs/promises</code>: there is no policy service and no sandbox to route around.</p>
+<p>What survives from the DSH seam is the rule it taught, and it is the reason <code>writeThrough()</code> still exists as one seam: <strong>a write is opt-in, per call, and reports what it could not write</strong>. <code>write</code>, <code>apply</code> and <code>force</code> are explicit arguments, an existing file is never replaced without <code>force</code>, and a failure is named per file rather than folded into a count — the DSH bug where every write failed on a <code>workspace-write</code> profile while reporting nothing but <code>Wrote 0 file(s)</code> is why the reply text names the file and the reason. The bytes matter too: the templates ship byte-for-byte and a section is measured in bytes, so the writer is UTF-8 without a BOM and touches nothing else about the content.</p>
+<h3>Naming what is still a placeholder</h3>
+<p>The scaffold&#39;s second job is telling the project what to do with the files: <code>planScaffold()</code> returns the per-file status, and the tool&#39;s reply names the sections that are still placeholders — the layout, the commands and the hard rules in <code>AGENTS.md</code>, and the first row of the index. A project that ships the boilerplate unfilled has documents that read as authoritative and say nothing.</p>
+<h3>Traps</h3>
+<ul><li><code>templates/</code> must stay project-agnostic: no language, no build tool, no command a new project would not have. The only substitutions are <code>PROJECT_NAME</code>, <code>PROJECT_SUMMARY</code>, <code>HANDOFF_COMMIT</code> and <code>HANDOFF_DATE</code>.</li><li>The templates and this repository&#39;s own documents are the same text with the placeholders resolved. A change to one is a change to the other in the same commit, or the next scaffolded project gets a version nobody uses.</li><li>OpenCode accepts these files as instructions only from an <code>AGENTS.md</code>-shaped name, so the <code>.tmpl</code> suffix is also what keeps a <code>{{...}}</code> token out of any prompt-interpolation path — file content is never prompt text.</li><li><strong>An install that flattens the built files breaks template resolution.</strong> A copy with <code>index.js</code> at the package root and no <code>dist/</code> resolves <code>../templates/</code> above the package. This is why the installer keeps the package layout and why the resolution walks to the package root: either fix alone would have stopped the crash, and both are pinned.</li></ul>
+</section>
+<section id="config-keys-ui">
+<h2>Config keys / UI</h2>
+<table><thead><tr><th>Key</th><th>Default</th><th>Range</th><th>Set by</th></tr></thead><tbody><tr><td><code>root</code></td><td>plugin location directory</td><td>any absolute path</td><td><code>feature_map_init</code> argument</td></tr><tr><td><code>project</code></td><td>last path segment of <code>root</code></td><td>any string</td><td><code>feature_map_init</code> argument</td></tr><tr><td><code>summary</code></td><td>a visible fill-in comment</td><td>any string</td><td><code>feature_map_init</code> argument</td></tr><tr><td><code>write</code></td><td><code>false</code></td><td>boolean</td><td><code>feature_map_init</code> argument</td></tr><tr><td><code>force</code></td><td><code>false</code></td><td>boolean</td><td><code>feature_map_init</code> argument</td></tr><tr><td><code>only</code></td><td>all four</td><td>template ids</td><td><code>feature_map_init</code> argument</td></tr></tbody></table>
+</section>
+<section id="tests-that-pin-it">
+<h2>Tests that pin it</h2>
+<p><code>test/plugin.test.mjs</code>: <code>the shipped boilerplate keeps its .tmpl suffix and never claims an instruction name</code>, <code>the built module resolves its templates from the package root</code>, <code>a flattened install finds its templates from the package root too</code>, <code>the scaffold plans every file, then writes it</code>, <code>a placeholder with no value stays visible instead of blanking the document</code>.</p>
+<p><code>test/contract.test.mjs</code>: <code>a failed write is named, never counted</code> — the reply names the blocking file and the reason (a blocker <em>file</em> where a directory is needed fails with <code>ENOTDIR</code>), and <code>a command whose tool fails delivers the reason instead of throwing</code>, which is the other half of the crash this page records.</p>
+</section>
+<section id="related">
+<h2>Related</h2>
+<p><a href="map-tool.html">map-tool.html</a> · <a href="enforcement.html">enforcement.html</a> · <a href="adoption.html">adoption.html</a> · <a href="packaging.html">packaging.html</a></p>
+</section>
+</article>
+
+</body>
+</html>

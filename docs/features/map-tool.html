@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="opencode-feature-map">
+<title>The map tool — read the section you need, not the page it lives in — feature map</title>
+<style>
+:root{color-scheme:light dark;--fg:#1d2433;--muted:#5b6475;--bg:#fff;--line:#d8dee9;--accent:#0b6e99;--warn:#8a5a00;--code:#f4f6fa}
+@media (prefers-color-scheme:dark){:root{--fg:#e6eaf2;--muted:#9aa4b8;--bg:#11151c;--line:#2b3342;--accent:#6cc4e8;--warn:#e0b25c;--code:#1a202a}}
+*{box-sizing:border-box}
+body{margin:0 auto;max-width:60rem;padding:2rem 1.25rem 4rem;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
+h1,h2,h3{line-height:1.25;margin:2rem 0 .75rem}
+h1{font-size:1.9rem;border-bottom:2px solid var(--line);padding-bottom:.4rem}
+h2{font-size:1.35rem}
+h3{font-size:1.08rem;color:var(--muted)}
+p,ul,ol,table,pre,blockquote{margin:.75rem 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.1em .3em;border-radius:.25rem;font-size:.92em}
+pre{background:var(--code);border:1px solid var(--line);border-radius:.4rem;padding:.8rem 1rem;overflow:auto}
+pre code{background:none;padding:0}
+pre.verbatim{border-left:4px solid var(--warn)}
+pre.verbatim::before{content:"verbatim — " attr(data-why);display:block;color:var(--warn);font:600 .78rem/1.4 ui-monospace,monospace;margin-bottom:.5rem;white-space:pre-wrap}
+pre.pseudo{border-left:4px solid var(--accent)}
+pre.mermaid{background:var(--bg);border:1px dashed var(--line)}
+p.status{color:var(--muted);font-size:.92rem}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--line);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--code)}
+blockquote{margin-left:0;padding-left:1rem;border-left:3px solid var(--line);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
+.lede{color:var(--muted)}
+</style>
+</head>
+<body>
+<article class="map">
+<h1>The map tool — read the section you need, not the page it lives in</h1>
+<p class="status">Status: shipped (0.2.0) · Read when: changing <code>feature_map</code>, <code>feature_map_check</code>, <code>src/map.ts</code>, the ranking, the tiers or the byte budget</p>
+<section id="what-it-does">
+<h2>What it does</h2>
+<ul><li><code>feature_map</code> with no arguments returns the index — the table of features and the pages it links — plus the list of pages.</li><li><code>feature_map</code> with <code>topic</code> returns the <strong>sections</strong> that match, best first: the names, the files and the tests, with the prose left out unless the topic matched it. Every reply names what it did not return and the call that gets it.</li><li><code>feature_map</code> with <code>topic</code> and <code>skeleton</code> returns the matching pages&#39; section lists and sizes instead of their content.</li><li><code>feature_map</code> with <code>page</code> alone returns that page&#39;s shape: its sections, their sizes, and how to ask for one. With <code>section</code> it returns that section, with <code>sub</code> a <code>###</code> inside it, and with <code>full: true</code> the whole page.</li><li>A reply that reaches the byte budget says where to resume, and <code>offset</code> continues it.</li><li><code>feature_map_check</code> reports drift — pages no row links, rows whose link does not resolve, pages with no title — and, separately, the sections that have outgrown a single read and which of those already divide at <code>###</code> level. <code>clean</code> means the index and the pages agree; size advice never flips it, so a caller checking its own edit and a caller auditing the map read the same word the same way.</li><li>Pages are HTML; replies are the rendered text. A code-shaped block arrives as pseudocode (the default) or, when it says why its bytes matter, as verbatim; a graph arrives as an edge list.</li><li>Each tool also runs as a command (<code>/feature-map</code>, <code>/feature-map-check</code>), with the same reply delivered into the session — see <a href="packaging.html">packaging.html</a> for that half.</li></ul>
+</section>
+<section id="map">
+<h2>Map</h2>
+<ul><li><code>src/map.ts</code> — <code>splitSections()</code>, <code>splitSubsections()</code>, <code>findSection()</code>, <code>findSubsection()</code>, <code>selectSections()</code>, <code>rankSections()</code>, <code>rankPages()</code>, <code>slugify()</code>, <code>headingOf()</code>, <code>capText()</code>, <code>checkMap()</code>, <code>TIER1_SECTIONS</code>, <code>MAP_DIR</code>, <code>MAP_INDEX</code>, <code>MAP_INDEX_HTML</code>, <code>LEGACY_MAP_INDEX</code>, <code>readMapIndex()</code>.</li><li><code>src/index.ts</code> — <code>renderMapReply()</code>, <code>skeletonText()</code>, <code>omittedLines()</code>, <code>continuationLine()</code>, <code>toolDef()</code>, and the five tool definitions.</li><li>Config: <code>maxBytes</code>, <code>sectionsPerTopic</code>, <code>maxSectionBytes</code>.</li></ul>
+</section>
+<section id="how-why">
+<h2>How &amp; why</h2>
+<p><strong>The headings were already the retrieval unit; nothing else had to change.</strong> The doc template fixes the section order for every page, so a page can be cut at its <code>##</code> boundaries with no new syntax, no front matter and no index of its own. That constraint is what makes this cheap: the map stays markdown a person can write, and the tool derives the granularity instead of demanding it.</p>
+<p><strong>Four levels, each naming the next.</strong> The index is the entry point (one call, no arguments). A topic is the common case and returns sections. A page alone is its shape, which is how a caller decides what to ask for. A section — or the whole page, or a <code>###</code> inside a section — is the explicit ask. Every reply carries the sentence that reaches the level below it, because a tool that answers with less than was wanted and does not say how to get the rest has traded bytes for a second, worse search.</p>
+<p><strong>Ranking is weighted so a name beats a mention, and a cheap section beats an expensive one.</strong> A topic token in a section&#39;s heading scores 4, in the page&#39;s path or title 3, and in the body at most 5 however often it appears. On top of that, a section named in <code>TIER1_SECTIONS</code> (<code>What it does</code>, <code>Map</code>, <code>Tests that pin it</code>) takes a bonus of 3 — the sections that answer &quot;where is it and what pins it&quot; without the prose. Equal scores prefer the <em>smaller</em> section, because the whole point is to spend fewer bytes. Measured on the reference map, a topic reply is 40% smaller in total than the pages it would otherwise have returned, and 48–57% on the topics whose answer is the payload rather than the mechanism.</p>
+<h3>A summary travels with a guessed section, not with a requested one</h3>
+<p>When the ranker picks <code>How &amp; why</code> for a topic, <code>What it does</code> is prepended: prose about a mechanism is read correctly only next to the sentence that says what the mechanism is for, and the ranker chose that section on a guess. When the caller names the section, nothing is prepended — naming a section means the page is already known, and the preamble above it carries the page title and status line. That single rule is worth about 900 bytes on a real page.</p>
+<p><strong>The budget continues instead of truncating.</strong> <code>capText()</code> takes an <code>offset</code> and returns <code>nextOffset</code>, and the offset always advances: a single line larger than the whole budget is returned whole rather than producing a continuation that never moves. Without this, the one section in the reference map that is larger than every page but its own (11,761 B) could only ever be delivered as a silent truncation.</p>
+<p><strong>A page with no <code>##</code> headings degrades to one chunk.</strong> <code>splitSections()</code> returns the whole body as a single section named after the page title, with the title line removed so a reply never prints it twice. This is not hypothetical: the first version of this feature made such a page <em>invisible</em> to a topic search, which the contract test caught. A hand-written page is still a page.</p>
+<p><strong>Reading the map is <code>node:fs</code>, and the tools run inside the server.</strong> OpenCode plugins execute in the server process under the installing user&#39;s authority, so there is no client-side filesystem service to call: a <code>readFile</code> on the map is exactly what the host itself does for the <code>read</code> tool, and one synchronous lookup shared by the guard and the tools beats two implementations that can disagree about where the project root is. The local-filesystem assumption is unchanged from the DSH original and is still stated rather than hidden.</p>
+<h3>Traps</h3>
+<ul><li>Index links resolve the way a relative link resolves: relative to the index file, not to the project root. <code>docs/features/index.html</code> saying <code>(runtime.html)</code> means <code>docs/features/runtime.html</code>. Resolving against the project root reports every page as missing from the index, which reads like a broken map rather than a broken parser.</li><li>A row whose link leaves <code>docs/features/</code> is reported rather than followed: the index is the map&#39;s table of contents, and following a link out of the map turns the check into a link checker for the whole repository.</li><li><code>listPages()</code> excludes the index itself. Counting the index as a page makes every map report one unindexed page forever.</li><li>Ranked sections are scored <em>copies</em>, so anything matching them back to their page must match by path or slug. Object identity lists every section as omitted while also returning it — the first version did exactly that with pages.</li><li>A <code>###</code> split is only as good as the author&#39;s headings. <code>splitSubsections()</code> carries the section&#39;s own lead text with every slice, so a subsection never arrives without its premise, but it cannot invent structure that is not there — which is why <code>feature_map_check</code> reports the sections that outgrew a read.</li><li><code>checkMap()</code> never writes. Keeping the map true is the change&#39;s job, not the checker&#39;s; a tool that silently rewrote the index would hide exactly the drift it exists to report.</li></ul>
+</section>
+<section id="config-keys-ui">
+<h2>Config keys / UI</h2>
+<table><thead><tr><th>Key</th><th>Default</th><th>Range</th><th>Set by</th></tr></thead><tbody><tr><td><code>maxBytes</code></td><td><code>12000</code></td><td>any positive integer; non-positive disables the cap</td><td>plugin options</td></tr><tr><td><code>sectionsPerTopic</code></td><td><code>3</code></td><td>positive integer</td><td>plugin options</td></tr><tr><td><code>maxSectionBytes</code></td><td><code>2048</code></td><td>positive integer</td><td>plugin options</td></tr></tbody></table>
+</section>
+<section id="tests-that-pin-it">
+<h2>Tests that pin it</h2>
+<p><code>test/plugin.test.mjs</code>: <code>a page splits on its ## headings, and keeps its preamble apart</code>, <code>a page with no ## headings degrades to one chunk instead of vanishing</code>, <code>a section splits into its ### subsections, each carrying the section lead</code>, <code>a heading beats a mention, and a cheap section beats an equal prose one</code>, <code>a capped reply can be resumed, and the walk always advances</code>, <code>the reference map reports the sections that outgrow a single read</code>.</p>
+<p><code>test/contract.test.mjs</code>: <code>no arguments returns the index, which is the entry point</code>, <code>a topic returns the cheap sections, not the whole page</code>, <code>a page alone is its shape, and section, sub and full go deeper</code>, <code>a topic can be asked for as shapes, and a capped reply can be resumed</code>, <code>the checker reports drift and sections too big to read on their own</code>.</p>
+</section>
+<section id="related">
+<h2>Related</h2>
+<p><a href="enforcement.html">enforcement.html</a> · <a href="templates.html">templates.html</a> · <a href="adoption.html">adoption.html</a> · <a href="packaging.html">packaging.html</a></p>
+</section>
+</article>
+
+</body>
+</html>

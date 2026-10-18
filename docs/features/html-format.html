@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="opencode-feature-map">
+<title>The HTML format — one page, two readers — feature map</title>
+<style>
+:root{color-scheme:light dark;--fg:#1d2433;--muted:#5b6475;--bg:#fff;--line:#d8dee9;--accent:#0b6e99;--warn:#8a5a00;--code:#f4f6fa}
+@media (prefers-color-scheme:dark){:root{--fg:#e6eaf2;--muted:#9aa4b8;--bg:#11151c;--line:#2b3342;--accent:#6cc4e8;--warn:#e0b25c;--code:#1a202a}}
+*{box-sizing:border-box}
+body{margin:0 auto;max-width:60rem;padding:2rem 1.25rem 4rem;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
+h1,h2,h3{line-height:1.25;margin:2rem 0 .75rem}
+h1{font-size:1.9rem;border-bottom:2px solid var(--line);padding-bottom:.4rem}
+h2{font-size:1.35rem}
+h3{font-size:1.08rem;color:var(--muted)}
+p,ul,ol,table,pre,blockquote{margin:.75rem 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.1em .3em;border-radius:.25rem;font-size:.92em}
+pre{background:var(--code);border:1px solid var(--line);border-radius:.4rem;padding:.8rem 1rem;overflow:auto}
+pre code{background:none;padding:0}
+pre.verbatim{border-left:4px solid var(--warn)}
+pre.verbatim::before{content:"verbatim — " attr(data-why);display:block;color:var(--warn);font:600 .78rem/1.4 ui-monospace,monospace;margin-bottom:.5rem;white-space:pre-wrap}
+pre.pseudo{border-left:4px solid var(--accent)}
+pre.mermaid{background:var(--bg);border:1px dashed var(--line)}
+p.status{color:var(--muted);font-size:.92rem}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--line);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--code)}
+blockquote{margin-left:0;padding-left:1rem;border-left:3px solid var(--line);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
+.lede{color:var(--muted)}
+</style>
+</head>
+<body>
+<article class="map">
+<h1>The HTML format — one page, two readers</h1>
+<p class="status">Status: shipped (0.2.0) · Read when: changing <code>src/html.ts</code>, the page format, <code>&lt;pre class=&quot;pseudo&quot;&gt;</code>, <code>&lt;pre class=&quot;verbatim&quot;&gt;</code>, <code>&lt;pre class=&quot;mermaid&quot;&gt;</code>, <code>feature_map_upgrade</code>, or what a page looks like in a browser</p>
+<section id="what-it-does">
+<h2>What it does</h2>
+<ul><li>A feature page is an HTML document under <code>docs/features/</code>; <code>index.html</code> is the index. The agent never receives the markup — every reply is the page rendered to compact canonical text (<code>#</code>/<code>##</code>/<code>###</code>, bullets, fences) — while a person opens the same file, follows its links and sees its graphs.</li><li>Headings remain the retrieval unit: <code>h1</code> is the title, <code>h2</code> a section, <code>h3</code> a subsection, so <code>splitSections()</code> and every reply level work unchanged.</li><li>A code-shaped block is <code>&lt;pre class=&quot;pseudo&quot;&gt;</code> by default: an agent copies the shape, not the bytes. <code>&lt;pre class=&quot;verbatim&quot; data-why=&quot;…&quot;&gt;</code> is only for a block whose exact bytes matter, and the reason is mandatory.</li><li>A graph is <code>&lt;pre class=&quot;mermaid&quot;&gt;</code>; the browser draws it from a CDN loader and the reader hands an agent the edge list instead of the source.</li><li>A legacy Markdown map (<code>docs/features/README.md</code> plus <code>.md</code> pages) is still read forever. <code>feature_map_upgrade</code> writes the HTML siblings, and the HTML page wins when a stem has both.</li></ul>
+</section>
+<section id="map">
+<h2>Map</h2>
+<ul><li><code>src/html.ts</code> — <code>htmlToMapText()</code>, <code>htmlTitle()</code>, <code>mapTextToHtmlBody()</code>, <code>renderMapDocument()</code>, <code>markdownToHtmlDocument()</code>, <code>mermaidToEdges()</code>, <code>scanHtml()</code>, <code>inlineToHtml()</code>, <code>decodeEntities()</code>, <code>escapeHtml()</code>, <code>MAP_CSS</code>, <code>isHtmlFile()</code>, <code>isMarkdownFile()</code>, <code>htmlSibling()</code>, <code>stemOf()</code>.</li><li><code>src/upgrade.ts</code> — <code>planUpgrade()</code>, <code>applyUpgrade()</code>, <code>renderUpgradeText()</code>; the tool is <code>feature_map_upgrade</code> (<code>/feature-map-upgrade</code>).</li><li><code>src/map.ts</code> — <code>MAP_INDEX_HTML</code>, <code>LEGACY_MAP_INDEX</code>, <code>MAP_INDEX</code>, <code>findMapRoot()</code>, <code>listPages()</code>, <code>readMapIndex()</code>, <code>docsCandidates()</code>, <code>renderIndexHtmlTable()</code>, and the <code>legacy</code>/<code>format</code> fields on pages and the check report.</li><li><code>src/templates.ts</code> — the <code>feature-map</code> entry targets <code>docs/features/index.html</code>; the template is <code>templates/docs/features/index.html.tmpl</code>.</li><li><code>src/index.ts</code> — <code>SECTION_TEXT</code>, <code>LEGACY_NOTICE</code>, <code>withGeneratedIndex()</code>, <code>renderRegenText()</code> and the six tool definitions.</li></ul>
+</section>
+<section id="how-why">
+<h2>How &amp; why</h2>
+<h3>What is measured</h3>
+<p><strong>Bytes are measured on the rendered text, never on the markup.</strong> A page&#39;s <code>text</code> field is what <code>htmlToMapText()</code> produced, and every size, rank, cap and reply uses it. That is what keeps the format from spending the agent&#39;s budget on <code>class</code> attributes: the browser pays for the markup, the agent does not.</p>
+<h3>The reader</h3>
+<p><strong>The reader is a tokenizer, not a DOM.</strong> <code>tokenize()</code> walks tags and comments; the walker understands the vocabulary the plugin writes (<code>h1</code>–<code>h6</code>, <code>p</code>, <code>ul</code>, <code>ol</code>, <code>li</code>, <code>pre</code>, <code>table</code>, <code>blockquote</code>, <code>dl</code>, inline <code>code</code>/<code>strong</code>/<code>em</code>/<code>a</code>) and treats anything else as a paragraph boundary. <code>head</code>, <code>script</code>, <code>style</code> and <code>title</code> are skipped as raw text — without that, the stylesheet is read as the page&#39;s first paragraph and the mermaid loader as prose.</p>
+<p><strong>Round-tripping is pinned, not assumed.</strong> <code>renderMapDocument()</code> and <code>htmlToMapText()</code> are inverses for the canonical vocabulary: headings, bullets, tables, fenced <code>pseudo</code>/<code>verbatim</code>/<code>mermaid</code>, status paragraphs. A parser change that loses a table row or turns one list into three fails the round-trip test before it reaches a reply.</p>
+<h3>The code policy</h3>
+<p><strong><code>verbatim</code> without a reason is a defect.</strong> <code>scanHtml()</code> reports it, the converter writes a visible <code>TODO</code> reason, and <code>feature_map_check</code> names the page under <code>On code:</code>. Pseudocode converted from a language is reported too: the fence keeps its language in <code>data-from-lang</code>, so a reviewer can see what was copied and decide what the block was meant to teach.</p>
+<h3>The upgrade</h3>
+<p><strong>The upgrade is additive.</strong> It writes <code>.html</code> beside each <code>.md</code>, rewrites internal <code>.md</code> links, and leaves the source in place unless <code>prune: true</code>. A project that runs it can still be read by an older checkout, and deleting the legacy file is an explicit choice rather than a side effect. <code>force</code> is the only way an existing <code>.html</code> is replaced.</p>
+<h3>The graph</h3>
+<p>Graph in the format:</p>
+<pre class="mermaid">flowchart LR
+  MD[README.md + pages.md] --&gt; UP[feature_map_upgrade]
+  UP --&gt; HTML[index.html + pages.html]
+  HTML --&gt; READ[reader: canonical text]
+  HTML --&gt; BROWSER[browser: styles + graph]
+  LEGACY[legacy .md kept] --&gt; READ</pre>
+<h3>The section</h3>
+<p><strong>A section is still the unit of review.</strong> The HTML writer emits one <code>section</code> per <code>##</code> heading with an <code>id</code>, but the reader ignores the <code>id</code> and re-derives the slug from the heading. Renaming a heading moves the anchor; the reply label (<code>page#section</code>) moves with it, and no stored map has to be migrated.</p>
+</section>
+<section id="config-keys-ui">
+<h2>Config keys / UI</h2>
+<p>No new plugin options. The upgrade&#39;s arguments are per call:</p>
+<table><thead><tr><th>Argument</th><th>Default</th><th>Effect</th></tr></thead><tbody><tr><td><code>apply</code></td><td><code>false</code></td><td>Report the plan only; with <code>true</code>, write the <code>.html</code> files.</td></tr><tr><td><code>prune</code></td><td><code>false</code></td><td>Also remove each <code>.md</code> source once its sibling is written.</td></tr><tr><td><code>force</code></td><td><code>false</code></td><td>Overwrite an <code>.html</code> file that already exists.</td></tr></tbody></table>
+</section>
+<section id="tests-that-pin-it">
+<h2>Tests that pin it</h2>
+<p><code>test/html.test.mjs</code>: <code>markup reads back as the canonical text</code>, <code>the canonical text round-trips through the document writer</code>, <code>a mermaid graph is read as an edge list</code>, <code>a converted fence becomes pseudocode and keeps its language</code>, <code>a verbatim block without a reason is reported</code>, <code>an HTML index is preferred and a same-stem Markdown page is hidden</code>, <code>an upgrade writes siblings and leaves the sources</code>, <code>prune removes what it replaced</code>, <code>an existing page is not overwritten without force</code>, <code>an unchanged HTML page is not rewritten</code>.</p>
+<p><code>test/contract.test.mjs</code>: <code>setup registers one instruction hook, six tools, one guard and six commands</code>, <code>a legacy map is read and its replies say so</code>, <code>the upgrade tool writes HTML and the checker then agrees</code>.</p>
+</section>
+<section id="related">
+<h2>Related</h2>
+<p><a href="map-tool.html">map-tool.html</a> · <a href="regen.html">regen.html</a> · <a href="templates.html">templates.html</a> · <a href="packaging.html">packaging.html</a></p>
+</section>
+</article>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
+mermaid.initialize({ startOnLoad: true, theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'neutral' })
+</script>
+</body>
+</html>

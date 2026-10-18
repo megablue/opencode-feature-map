@@ -1,7 +1,7 @@
 # Session handoff — opencode-feature-map
 
-Next: `docs/features/README.md` — the feature map. Read only the page for
-your area before the code.
+Next: `docs/features/index.html` — the feature map. Read only the page for your
+area before the code.
 
 **A snapshot, not a source of truth.** This file goes stale by design. If it
 disagrees with the code, the code is right. `AGENTS.md` is the process doc,
@@ -9,69 +9,64 @@ disagrees with the code, the code is right. `AGENTS.md` is the process doc,
 This file is the volatile one — it exists so a new session knows *where things
 stand*, not *how they work*.
 
-As of `2026-10-09` — `main` at `a8fad27`, tree clean.
+As of `2026-10-18` — version `0.2.0`, working tree carrying the HTML-format
+change (not committed at the stamp).
 
 ## State
 
-- `62b1308` is the port: the plugin, the installer, the tests, the docs — all
-  committed and green (64 tests at that commit).
-- **A live crash was then found and, as of `a8fad27`, fixed and committed.**
-  Every `/feature-map-init` (and `/feature-map-adopt`) call 500'd with
-  `ENOENT … plugins\templates\AGENTS.md.tmpl` and crashed the session. Three
-  causes, all in the install/resolution chain, all fixed and pinned:
-  1. the discovery loader resolves a plugin package to its **root
-     `index.js`**, not `main`/`exports` — the first install's flattened root
-     entry was what loaded;
-  2. `src/templates.ts` resolved the templates directory with a fixed
-     `../templates/` hop, which from a root module points above the package —
-     replaced by `packageRoot()` (walk up to the nearest `package.json`);
-  3. the command executor threw on a failing tool, and a throw there is a 500
-     that takes the session down — it now answers with
-     `Could not run /<name>: <reason>`.
-  `scripts/install.mjs` now installs the package layout (`package.json`,
-  `dist/`, `templates/`) plus a one-line re-export entry, and wipes the target
-  first so a stale layout cannot outlive it. `git log` is the check.
-- The gate is green as of the stamp: typecheck, build, **68 tests** (+4: the
-  flattened-layout resolution, the install wipe/shim, the command soft-fail),
-  smoke and measure unchanged.
-- **Live re-verified after the `a8fad27` reinstall**: `opencode plugin list` shows
-  `feature-map local` with the shim entry; `/feature-map-init` returned the
-  four-document plan (all four templates read) and `/feature-map-adopt
-  focus:agents` returned the adoption report — the exact calls that 500'd.
-- The machine's global install is `~/.config/opencode/plugins/feature-map/`,
-  in the package layout plus `index.js` shim, made by `npm run
-  plugin:install`. `~/.config/opencode/opencode.json` still holds only the
-  `@tarquinen/opencode-dcp@latest` entry.
+- **The HTML format is shipped in the working tree.** A feature map is now
+  `docs/features/index.html` plus one HTML page per feature. The agent still
+  receives compact text: `listPages()` parses each page with
+  `htmlToMapText()`, and every rank, cap and byte count uses that text.
+- **The plugin's own map was converted**, with `prune`, by the new
+  `feature_map_upgrade`: `docs/features/README.md` and the six `.md` pages are
+  gone, replaced by `index.html` and seven `.html` pages, including the new
+  `html-format.html`. The index has a `Page format` section and a mermaid
+  graph demonstrating the format.
+- **The gate is green**: typecheck, build, **83 tests** (up from 69), smoke
+  (`7` HTML pages, `0` unindexed, `0` unresolved, regen would change `0`) and
+  `measure` (the reference fixture is still Markdown and still reads).
+- **Live install refreshed**: `npm run plugin:install` and
+  `opencode plugin list` show `feature-map local` from the global plugins
+  directory. The registered surface is six tools, six commands, one
+  instruction hook and one guard.
+- **Legacy maps are still read forever.** `findMapRoot()` prefers
+  `index.html`, falls back to `README.md`, and returns `{format, legacy}`.
+  Every reply from a legacy map carries a one-line notice naming
+  `feature_map_upgrade`; the checker does the same.
+- **`feature_map_upgrade`** is additive by default (`plan`, `apply`, `prune`,
+  `force`). A fenced block with a language becomes `<pre class="pseudo"
+  data-from-lang="…">` and is reported for review; `text` fences become
+  `verbatim` with a visible `TODO` reason; `.md` links become `.html`.
 
 ## Open threads
 
-- Nothing in flight: the tree is clean and the gate is green at `a8fad27`.
-  The next session's first move is decided by whatever it is asked to do —
-  read the map page for that area, not this file.
-- The DSH original (`../workflow`) still has the fixed-hop
-  `TEMPLATE_DIR` and the unguarded command executor. The port fixed both on
-  this side; mirroring them back is a change to that repository, not this one.
-- The repo's own `AGENTS.md` Layout and Commands sections were filled by hand
-  from the same facts as `templates/AGENTS.md.tmpl`'s placeholders. The
-  template still carries its fill-in comments — `templates.md` says a change to
-  one is a change to the other in the same commit, so decide whether the
-  template should be brought up to the filled text or stay deliberately
-  generic.
+- Commit the change (docs, code, tests, template) as one unit; the feature map
+  and `docs/SPEC.md` are already updated in the same working tree.
+- Exercise `/feature-map-upgrade` and `/feature-map` live after the server
+  picks up the reinstall; the registrations and the tool bodies are pinned by
+  `test/contract.test.mjs`, but the live command path is the last unobserved
+  step.
+- `reference/PingLatencyOverlay/` is deliberately still Markdown: it is the
+  fixture that pins dual-read and the upgrade tests. Do not convert it.
 
 ## Known gaps (volatile; the durable traps live in the feature pages)
 
-- The guard's live denial was observed for a `read` action; the `grep` and
-  `glob` paths are pinned by `test/contract.test.mjs` but were not triggered
-  live (a grep denial also clears the session's one ask, so re-verifying needs
-  a fresh session).
-- `/feature-map-check`, `/feature-map-init` and `/feature-map-adopt` are the
-  commands exercised end to end; the other two share `buildCommands()` and the
-  same synthetic delivery, and are pinned by tests.
+- The mermaid loader is a CDN import. Offline, a browser shows the graph source
+  unstyled; the agent is unaffected because it reads the edge list.
+- `npm run measure .` runs its default reference topics against this
+  repository, so three of the four report "no match". Point it at
+  `reference/PingLatencyOverlay` for the original measurement.
+- The HTML reader is a small tokenizer, not a DOM: exotic markup outside the
+  vocabulary in `html-format.html` degrades to paragraph text rather than
+  failing.
+- The regenerator rewrites a changed HTML page through the canonical text. A
+  graph inside a section that regen actually splits becomes an edge list; an
+  unchanged page keeps its original bytes and its graph.
 
 ## Local-only state (not on the remote)
 
 - The global plugins directory holds the live copy
-  (`~/.config/opencode/plugins/feature-map/`). That is the documented install
-  route, so leaving it installed is the working state;
-  `npm run plugin:uninstall` removes it, and the same copy under a project's
+  (`~/.config/opencode/plugins/feature-map/`), refreshed after the 0.2.0
+  build. `npm run plugin:uninstall` removes it; the same copy under a project's
   `.opencode/plugins/` is what `--project` creates.

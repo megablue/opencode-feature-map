@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="opencode-feature-map">
+<title>Regeneration — rewriting a map into a shape the plugin can read — feature map</title>
+<style>
+:root{color-scheme:light dark;--fg:#1d2433;--muted:#5b6475;--bg:#fff;--line:#d8dee9;--accent:#0b6e99;--warn:#8a5a00;--code:#f4f6fa}
+@media (prefers-color-scheme:dark){:root{--fg:#e6eaf2;--muted:#9aa4b8;--bg:#11151c;--line:#2b3342;--accent:#6cc4e8;--warn:#e0b25c;--code:#1a202a}}
+*{box-sizing:border-box}
+body{margin:0 auto;max-width:60rem;padding:2rem 1.25rem 4rem;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
+h1,h2,h3{line-height:1.25;margin:2rem 0 .75rem}
+h1{font-size:1.9rem;border-bottom:2px solid var(--line);padding-bottom:.4rem}
+h2{font-size:1.35rem}
+h3{font-size:1.08rem;color:var(--muted)}
+p,ul,ol,table,pre,blockquote{margin:.75rem 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.1em .3em;border-radius:.25rem;font-size:.92em}
+pre{background:var(--code);border:1px solid var(--line);border-radius:.4rem;padding:.8rem 1rem;overflow:auto}
+pre code{background:none;padding:0}
+pre.verbatim{border-left:4px solid var(--warn)}
+pre.verbatim::before{content:"verbatim — " attr(data-why);display:block;color:var(--warn);font:600 .78rem/1.4 ui-monospace,monospace;margin-bottom:.5rem;white-space:pre-wrap}
+pre.pseudo{border-left:4px solid var(--accent)}
+pre.mermaid{background:var(--bg);border:1px dashed var(--line)}
+p.status{color:var(--muted);font-size:.92rem}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--line);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--code)}
+blockquote{margin-left:0;padding-left:1rem;border-left:3px solid var(--line);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
+.lede{color:var(--muted)}
+</style>
+</head>
+<body>
+<article class="map">
+<h1>Regeneration — rewriting a map into a shape the plugin can read</h1>
+<p class="status">Status: shipped (0.2.0) · Read when: changing <code>feature_map_regen</code>, <code>src/regen.ts</code>, the chunking, the placeholder headings, or the index reconcile</p>
+<section id="what-it-does">
+<h2>What it does</h2>
+<ul><li>Reads the map that already exists — every page under <code>docs/features/</code> and the index — and rewrites it so the plugin can hand out one section at a time.</li><li>Adds what is missing: a <code># </code> title, a <code>Status: … Read when:</code> line (its trigger taken from the page&#39;s own index row), and any of the six template <code>##</code> headings, each with a visible fill-in comment.</li><li>Divides every section larger than <code>maxSectionBytes</code> at boundaries the author already wrote, into <code>###</code> chunks that each fit one read.</li><li>Names a chunk from the author&#39;s own bold lead-in when it is paragraph-initial and short enough; otherwise it inserts a visible <code>### &lt;!-- chunk 1/2: name this --&gt;</code> and lists it in the reply.</li><li>Reconciles the index with the pages: a row that resolves is left byte-identical, a broken link is re-pointed, a page with no row gets one, a row no page claims is dropped and printed.</li><li>Plans by default. <code>apply: true</code> writes the files; <code>show: true</code> returns the rewritten text. Nothing outside <code>docs/features/</code> is ever touched.</li><li>Reads both formats. A changed HTML page is written back as an HTML document; an unchanged one keeps its original bytes, so a no-op run cannot restyle a page or flatten its graph.</li></ul>
+</section>
+<section id="map">
+<h2>Map</h2>
+<ul><li><code>src/regen.ts</code> — <code>findIndexTable()</code>, <code>rewriteIndexTable()</code>, <code>regeneratePage()</code>, <code>planRegen()</code>, <code>applyRegen()</code>, and the internals <code>chunkSection()</code>, <code>SECTION_HINTS</code>, <code>MAX_LEAD_IN</code>, <code>HEADING_RESERVE</code>.</li><li><code>src/index.ts</code> — the <code>feature_map_regen</code> tool, <code>renderRegenText()</code>, and <code>writeThrough()</code>, the write seam it shares with the scaffold.</li><li><code>src/map.ts</code> — <code>renderIndexRow()</code>, <code>TRIGGER_PLACEHOLDER</code> and <code>readMapIndex()</code>, shared so a regenerated row and a generated table can never disagree about a row&#39;s shape and both formats are read through one seam.</li><li><code>scripts/smoke.mjs</code> — prints what a regeneration would change, without writing.</li></ul>
+</section>
+<section id="how-why">
+<h2>How &amp; why</h2>
+<h3>Structure only, never prose</h3>
+<p>Every edit is a line range over the original line array, applied highest position first, so the file&#39;s EOL style, a BOM and a missing final newline all survive. The single text edit is dropping the <code>**</code> markers around a lead-in that becomes a heading — no sentence is added, removed, reordered or reworded, and content never moves between sections.</p>
+<p>That is measurable rather than aspirational: across both real maps on the DSH machine, <strong>12 of 12</strong> placeholder splits keep the non-blank lines identical to what was there, and the two named splits differ only by the promoted line&#39;s <code>**</code>. The whole-file version of the claim is a test: <code>a placeholder split only inserts heading lines and keeps the body byte-for-byte</code>.</p>
+<h3>The chunker and its budget</h3>
+<p>A section is cut into the units the author already separated: a paragraph, or one top-level bullet with its continuation lines. A unit is never cut, so a bullet never loses the line that continues it; blank lines separate units and are re-emitted as they were, so a list stays one list inside a chunk.</p>
+<p><strong>Every chunk pays for its own heading</strong> — the first chunk for the section&#39;s <code>##</code> line, each later one for the <code>###</code> this tool adds. Budgeting the body alone was wrong in a way worth naming: a section measured 175 B against a 160 B budget while its body fitted in 160, so the tool reported &quot;no boundary to cut at&quot; for a section that simply had two paragraphs. Packing is greedy, then a fix-up loop moves the last unit of any chunk that still overflows into the next one; a chunk of a single unit is left alone and reported.</p>
+<h3>Naming a chunk, or refusing to</h3>
+<p>A chunk&#39;s first paragraph is promoted to its heading when it opens with <code>**…**</code> of at most 60 characters: the markers go, a trailing full stop goes, and the words are the author&#39;s own. Anything else gets <code>### &lt;!-- chunk 1/2: name this --&gt;</code>, and the reply lists every one under <code>Placeholders to name</code>.</p>
+<p>The two real maps are written in different styles, and the rule treats them differently on purpose: this repository&#39;s pages are bold-led paragraphs, so some headings come out named; the reference map&#39;s oversized sections are bullet lists whose bold sits <em>inside</em> each bullet, so they get placeholders. Promoting a bullet&#39;s bold would carve that bullet out of its list, which is an edit to structure the author did not ask for.</p>
+<h3>The index is reconciled, not regenerated</h3>
+<p>Measured against the reference map: regenerating every cell from the pages rewrote <strong>13 of 13 rows of a healthy index</strong> — short editorial labels replaced by full page titles, every hand-written trigger replaced by the page&#39;s <code>Status:</code> line, and the project&#39;s grouping replaced by path order. So a row is matched to a page in four tiers, strongest first: the link&#39;s exact path, then its file name, then the row&#39;s label, then a label that is the first part of a page&#39;s title — the last one is what a map written with short labels (<code>Tray</code>) against long titles (<code>Tray — the resident process…</code>) needs to keep its hand-written trigger when a link breaks. A matched row whose link resolves is emitted byte-identical in its original position, and the trigger is only supplied for a row that is being added. Result on a conformant map: <code>unchanged</code>, <code>kept: 13</code>.</p>
+<p>A tier that matches more than one page matches none, and the row is dropped with the reason printed: guessing between two owners would rewrite a link that was already right. Every dropped row&#39;s whole line goes into the reply, because that is the one operation here that destroys wording a person wrote.</p>
+<h3>Deciding which table is the map&#39;s</h3>
+<p>Qualification is stricter than matching. A table is <em>the map&#39;s</em> when its header names a feature or when a row that actually links something matches a page — a table of names whose first cell merely reads like a page title is somebody else&#39;s and is refused, which is a case a fixture caught.</p>
+<h3>Traps</h3>
+<ul><li>A page with <strong>no <code>##</code> heading at all</strong> is refused for that page: inserting six empty sections would leave its body in the preamble, where no section-level search returns it. It is reported as needing an author instead.</li><li>A section that <strong>already divides</strong> but whose largest <code>###</code> chunk is still over the limit needs an author: the plugin has no level below <code>###</code>, and inventing one is not this tool&#39;s job.</li><li>A map with <strong>no pages</strong> has its index refused — a rewrite could only delete rows.</li><li>A rewritten section&#39;s trailing blank lines are normalized to one. The body is byte-identical; the whitespace at the section&#39;s end is not.</li><li>A <strong>refused</strong> index is returned byte-for-byte and reported; the pages are still rewritten, because one unreadable table is no reason to leave the pages alone.</li><li>A row that two pages could own is dropped rather than assigned, and the reply says which ambiguity it hit.</li><li>A write goes through the scaffold&#39;s seam; see <a href="templates.html">templates.html</a> for why the reason is named per file. A file that could not be written is named under <code>Could not be written</code>, never only counted.</li><li>A second run is a no-op by construction: every transformation is idempotent, and a placeholder is already a valid <code>###</code> heading.</li><li>A session that regenerated or checked the map has read it, so the guard&#39;s one ask is already satisfied: both tools mark the session consulted. Otherwise the tool that fixes the map would be followed by a denial for the write it made.</li></ul>
+</section>
+<section id="config-keys-ui">
+<h2>Config keys / UI</h2>
+<table><thead><tr><th>Argument</th><th>Default</th><th>Meaning</th></tr></thead><tbody><tr><td><code>root</code></td><td>plugin location directory</td><td>the project whose map to rewrite</td></tr><tr><td><code>apply</code></td><td><code>false</code></td><td>write the changed files; without it, plan only</td></tr><tr><td><code>show</code></td><td><code>false</code></td><td>include the rewritten text, capped at <code>maxBytes</code> and resumable with <code>offset</code></td></tr><tr><td><code>offset</code></td><td><code>0</code></td><td>byte offset to resume a capped <code>show</code> reply</td></tr></tbody></table>
+<p>The chunk target is the plugin&#39;s <code>maxSectionBytes</code> (2048), the same knob <code>feature_map_check</code> uses, so &quot;split it&quot; and &quot;it needs splitting&quot; cannot disagree.</p>
+</section>
+<section id="tests-that-pin-it">
+<h2>Tests that pin it</h2>
+<p><code>test/plugin.test.mjs</code>: <code>an oversized section is split at paragraph and bullet boundaries and every chunk fits</code>, <code>a paragraph-initial bold lead-in becomes the heading and the bold markers go away</code>, <code>a chunk with no paragraph-initial lead-in gets a visible placeholder heading</code>, <code>a placeholder split only inserts heading lines and keeps the body byte-for-byte</code>, <code>a page missing mandated headings gets them with fill-in comments and nothing else moves</code>, <code>a missing Status line is filled from the index row that links the page</code>, <code>an unnameable oversized chunk is reported and never split mid-sentence</code>, <code>regenerating twice changes nothing the second time</code>, <code>the index is reconciled: rows appended, broken links re-pointed, orphans dropped, matched rows untouched</code>, <code>a broken link whose label heads the page title is re-pointed, and an ambiguous one is dropped</code>, <code>a foreign table is refused, and the pages are rewritten anyway</code>.</p>
+<p><code>test/contract.test.mjs</code>: <code>regen plans without writing and writes only with apply</code>, <code>regen leaves every file outside the map byte-for-byte alone</code>, <code>a table that cannot be identified is refused, and nothing is written for it</code>, <code>a regenerated map then satisfies the checker</code>, <code>the guard stands down once the map is read or regenerated, and in a project without one</code>.</p>
+</section>
+<section id="related">
+<h2>Related</h2>
+<p><a href="map-tool.html">map-tool.html</a> · <a href="adoption.html">adoption.html</a> · <a href="templates.html">templates.html</a> · <a href="packaging.html">packaging.html</a></p>
+</section>
+</article>
+
+</body>
+</html>

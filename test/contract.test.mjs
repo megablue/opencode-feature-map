@@ -191,13 +191,20 @@ test('the package ships a build entry and declares its one dependency', async ()
   }
 })
 
-test('setup registers one instruction hook, five tools, one guard and five commands', async () => {
+test('setup registers one instruction hook, six tools, one guard and six commands', async () => {
   const ctx = mockContext()
   await plugin.setup(ctx)
   assert.equal(ctx.record.contextHooks.length, 1)
   assert.deepEqual(
     ctx.record.tools.map((tool) => tool.name).sort(),
-    ['feature_map', 'feature_map_adopt', 'feature_map_check', 'feature_map_init', 'feature_map_regen'],
+    [
+      'feature_map',
+      'feature_map_adopt',
+      'feature_map_check',
+      'feature_map_init',
+      'feature_map_regen',
+      'feature_map_upgrade',
+    ],
   )
   assert.equal(ctx.record.permissionHooks.length, 1)
   assert.deepEqual(
@@ -208,6 +215,7 @@ test('setup registers one instruction hook, five tools, one guard and five comma
       'feature-map-check',
       'feature-map-init',
       'feature-map-regen',
+      'feature-map-upgrade',
     ],
   )
 })
@@ -241,6 +249,23 @@ test('every tool declares closed schemas, an execute, and content to render', as
     assert.equal(tool.input.additionalProperties, false)
     assert.equal(tool.output.type, 'object')
     assert.equal(tool.output.additionalProperties, false)
+  }
+})
+
+test('every tool is offered to the model by name, not only through the code-mode wrapper', async () => {
+  // The failure mode this pins: a tool that registers but is never offered.
+  // The host carries a registry entry into the model's request only when it
+  // declares `codemode: false`; without it the plugin loads, pushes its
+  // instruction and fires its guard as normal, and the model's own call to the
+  // tool is answered "no such tool". Observed in a live session.
+  const ctx = mockContext()
+  await plugin.setup(ctx)
+  for (const tool of ctx.record.tools) {
+    assert.equal(
+      tool.options?.codemode,
+      false,
+      `${tool.name} would load without being offered — the host serves code-mode tools only through execute`,
+    )
   }
 })
 
@@ -561,13 +586,13 @@ test('mode prompt keeps the instruction and drops the guard', async () => {
   await plugin.setup(prompt)
   assert.equal(prompt.record.contextHooks.length, 1)
   assert.equal(prompt.record.permissionHooks.length, 0)
-  assert.equal(prompt.record.tools.length, 5)
+  assert.equal(prompt.record.tools.length, 6)
 
   const off = mockContext({ options: { mode: 'off' } })
   await plugin.setup(off)
   assert.equal(off.record.contextHooks.length, 0)
   assert.equal(off.record.permissionHooks.length, 0)
-  assert.equal(off.record.tools.length, 5, 'the tools work whatever the mode')
+  assert.equal(off.record.tools.length, 6, 'the tools work whatever the mode')
 
   const nonsense = mockContext({ options: { mode: 'whatever' } })
   await plugin.setup(nonsense)
@@ -658,7 +683,7 @@ test('adoption writes what is missing and never edits what exists', async () => 
 
     const applied = (await adopt.execute({ apply: true }, exec)).output
     assertMatchesSchema(applied, adopt.output, 'feature_map_adopt(apply)')
-    assert.ok(applied.wrote.includes('docs/features/README.md'), 'the missing index is written')
+    assert.ok(applied.wrote.includes('docs/features/index.html'), 'the missing index is written')
     assert.ok(!applied.wrote.includes('AGENTS.md'), 'an existing AGENTS.md is never written')
     assert.ok(applied.wrote.includes('HANDOFF.md'), 'a missing HANDOFF.md is written')
     assert.equal(
@@ -874,6 +899,62 @@ test('a table that cannot be identified is refused, and nothing is written for i
     assert.ok(applied.wrote.includes('docs/features/widgets.md'), 'the page is still rewritten')
     assert.ok(!applied.wrote.includes('docs/features/README.md'))
     assert.equal(await readFile(indexPath, 'utf8'), foreign, 'the foreign table is byte-identical')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('a legacy map is read and every reply says so', async () => {
+  const root = await scratchProject()
+  try {
+    const ctx = mockContext({ root })
+    await plugin.setup(ctx)
+    const exec = mockToolContext()
+
+    const out = (await toolNamed(ctx, 'feature_map').execute({}, exec)).output
+    assertMatchesSchema(out, toolNamed(ctx, 'feature_map').output, 'feature_map(legacy)')
+    assert.ok(out.text.includes('Widgets'), 'the page list is still there')
+    assert.ok(out.text.includes('legacy map'), 'the reply says the map is Markdown')
+    assert.ok(out.text.includes('feature_map_upgrade'), 'and names the way out')
+    assert.equal(out.index, 'docs/features/README.md')
+
+    const check = (await toolNamed(ctx, 'feature_map_check').execute({}, exec)).output
+    assertMatchesSchema(check, toolNamed(ctx, 'feature_map_check').output, 'feature_map_check(legacy)')
+    assert.equal(check.legacy, true)
+    assert.ok(check.text.includes('legacy map'))
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('the upgrade writes HTML and the checker then agrees', async () => {
+  const root = await scratchProject()
+  try {
+    const ctx = mockContext({ root })
+    await plugin.setup(ctx)
+    const exec = mockToolContext()
+    const upgrade = toolNamed(ctx, 'feature_map_upgrade')
+
+    const plan = (await upgrade.execute({}, exec)).output
+    assertMatchesSchema(plan, upgrade.output, 'feature_map_upgrade(plan)')
+    assert.deepEqual(plan.wrote, [], 'the default is a plan')
+    assert.ok(plan.text.includes('pseudocode') || plan.text.includes('Plan only'), plan.text)
+
+    const applied = (await upgrade.execute({ apply: true }, exec)).output
+    assertMatchesSchema(applied, upgrade.output, 'feature_map_upgrade(apply)')
+    assert.ok(applied.wrote.includes('docs/features/index.html'))
+    assert.ok(applied.wrote.includes('docs/features/widgets.html'))
+    assert.deepEqual(applied.removed, [], 'the .md sources are kept by default')
+    assert.ok(existsSync(join(root, 'docs', 'features', 'widgets.md')))
+    assert.ok(existsSync(join(root, 'docs', 'features', 'index.html')))
+
+    const out = (await toolNamed(ctx, 'feature_map').execute({}, exec)).output
+    assert.ok(!out.text.includes('legacy map'), 'the map is HTML now')
+    assert.equal(out.index, 'docs/features/index.html')
+
+    const check = (await toolNamed(ctx, 'feature_map_check').execute({}, exec)).output
+    assert.equal(check.legacy, false)
+    assert.equal(check.clean, true, check.text)
   } finally {
     await rm(root, { recursive: true, force: true })
   }

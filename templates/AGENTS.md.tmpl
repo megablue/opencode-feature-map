@@ -1,7 +1,7 @@
 # AGENTS.md
 
 **Before you grep, glob or open a source file: read `HANDOFF.md`, then
-`docs/features/README.md`, then only the feature page(s) for the area you are
+`docs/features/index.html`, then only the feature page(s) for the area you are
 about to change. The feature pages name the files, functions and tests you
 would otherwise hunt for — the code comes after them, not before.**
 
@@ -25,7 +25,7 @@ be wrong.
 
 ## Read first
 `HANDOFF.md` holds the current state; if it is missing, carry on with the
-feature map and the code. Then `docs/features/README.md` — the feature map —
+feature map and the code. Then `docs/features/index.html` — the feature map —
 and only the feature doc(s) for what you are about to change.
 `docs/SPEC.md` is user-visible behavior; this file is process and hard rules;
 the feature docs are the map, the mechanism and the traps.
@@ -101,9 +101,16 @@ than a nicety. -->
 
 ## Where the working knowledge lives
 
-The per-feature working knowledge lives in `docs/features/`; its `README.md` is
+The per-feature working knowledge lives in `docs/features/`; its `index.html` is
 the index. This file keeps the process rules and the hard rules that apply
 across features; the feature pages keep the maps, mechanisms and traps.
+
+Feature pages are HTML documents. A code-shaped block is pseudocode —
+`<pre class="pseudo">` — because an agent copies the shape, not the bytes;
+`<pre class="verbatim" data-why="…">` is only for a block whose exact bytes
+matter, and the reason is mandatory. A graph is `<pre class="mermaid">`; the
+tool hands the agent an edge list and the browser draws the picture. A map
+written as Markdown is still read, and `feature_map_upgrade` converts one.
 
 ## Hard rules
 <!-- Replace this section. One bullet per constraint that must not decay. State

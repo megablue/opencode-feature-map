@@ -1,7 +1,7 @@
 # AGENTS.md
 
 **Before you grep, glob or open a source file: read `HANDOFF.md`, then
-`docs/features/README.md`, then only the feature page(s) for the area you are
+`docs/features/index.html`, then only the feature page(s) for the area you are
 about to change. The feature pages name the files, functions and tests you
 would otherwise hunt for — the code comes after them, not before.**
 
@@ -25,7 +25,7 @@ be wrong.
 
 ## Read first
 `HANDOFF.md` holds the current state; if it is missing, carry on with the
-feature map and the code. Then `docs/features/README.md` — the feature map —
+feature map and the code. Then `docs/features/index.html` — the feature map —
 and only the feature doc(s) for what you are about to change.
 `docs/SPEC.md` is user-visible behavior; this file is process and hard rules;
 the feature docs are the map, the mechanism and the traps.
@@ -35,19 +35,24 @@ the feature docs are the map, the mechanism and the traps.
 One bullet per top-level directory: what it owns, and why it is separate from
 its neighbour.
 
-- **`src/`** — the plugin, in four files. `index.ts` is the only OpenCode-aware
+- **`src/`** — the plugin, in six files. `index.ts` is the only OpenCode-aware
   file: the host adapters (`toolDef`, `buildCommands`, `parseArgs`), the guard
   and the `Plugin.define` entry. `map.ts`, `regen.ts` and `templates.ts` are
   byte-faithful ports of the DSH implementation (`@ts-nocheck`, pinned by the
   suite rather than the typechecker) — the map reading/ranking/checking, the
-  regeneration, and the scaffold templates. They stay separate so the OpenCode
-  surface can change without the ported logic drifting from its original.
+  regeneration, and the scaffold templates. `html.ts` is the format seam: the
+  tolerant HTML reader, the canonical-text writer, the mermaid edge list and the
+  Markdown converter; `upgrade.ts` is the additive migration built on it. The
+  files stay separate so the OpenCode surface can change without the ported
+  logic drifting from its original.
 - **`dist/`** — the built output (`tsc`). What `scripts/install.mjs` copies;
   never edit by hand, and always rebuilt as part of the gate.
 - **`templates/`** — the four `.tmpl` boilerplate files a scaffolded project
   receives. The suffix is load-bearing (it must never be read as an
-  instruction file); see `docs/features/templates.md`.
+  instruction file); see `docs/features/templates.html`. The map template is
+  `docs/features/index.html.tmpl`.
 - **`test/`** — `plugin.test.mjs` (the map/template layer on `dist/`),
+  `html.test.mjs` (the HTML format, the upgrade and HTML regeneration),
   `contract.test.mjs` (the host surface: registrations, tools, guard, commands),
   `install.test.mjs` (the install/uninstall surface). The tests import the
   built `dist/`, so the build is part of the test gate.
@@ -66,7 +71,7 @@ Run from the repository root. The gate before a commit is the whole chain, not
 the test run alone:
 
 ```powershell
-npm run typecheck   # tsc --noEmit        — src/index.ts must be clean
+npm run typecheck   # tsc --noEmit        — every src module must be clean
 npm run build       # tsc                 — emits dist/, which the tests import
 npm test            # scripts/test.mjs    — every test/*.test.mjs, one process
 npm run smoke       # scripts/smoke.mjs . — a plan-only pass over this repo
@@ -151,3 +156,12 @@ that pins it.
 - The README is for users. Implementation detail belongs in `docs/SPEC.md` for
   behavior and here for working knowledge, and the user must be consulted
   before technical detail is added to the README.
+- **A reply is measured on rendered text, never on HTML.** `page.text` is
+  `htmlToMapText()` output and every rank, cap and byte count reads it; a change
+  that measures the markup spends the agent's budget on attributes. Pinned by
+  `an unchanged HTML page is not rewritten` and the round-trip test in
+  `test/html.test.mjs`.
+- **`verbatim` carries a reason.** `<pre class="verbatim">` without `data-why`
+  is a review defect, not a style choice; `scanHtml()` reports it and
+  `feature_map_check` names the page. Pseudocode is the default for a code fence
+  and keeps its source language in `data-from-lang`.

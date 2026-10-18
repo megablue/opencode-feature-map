@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="opencode-feature-map">
+<title>The guard — deny the first source lookup of a session, once — feature map</title>
+<style>
+:root{color-scheme:light dark;--fg:#1d2433;--muted:#5b6475;--bg:#fff;--line:#d8dee9;--accent:#0b6e99;--warn:#8a5a00;--code:#f4f6fa}
+@media (prefers-color-scheme:dark){:root{--fg:#e6eaf2;--muted:#9aa4b8;--bg:#11151c;--line:#2b3342;--accent:#6cc4e8;--warn:#e0b25c;--code:#1a202a}}
+*{box-sizing:border-box}
+body{margin:0 auto;max-width:60rem;padding:2rem 1.25rem 4rem;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
+h1,h2,h3{line-height:1.25;margin:2rem 0 .75rem}
+h1{font-size:1.9rem;border-bottom:2px solid var(--line);padding-bottom:.4rem}
+h2{font-size:1.35rem}
+h3{font-size:1.08rem;color:var(--muted)}
+p,ul,ol,table,pre,blockquote{margin:.75rem 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.1em .3em;border-radius:.25rem;font-size:.92em}
+pre{background:var(--code);border:1px solid var(--line);border-radius:.4rem;padding:.8rem 1rem;overflow:auto}
+pre code{background:none;padding:0}
+pre.verbatim{border-left:4px solid var(--warn)}
+pre.verbatim::before{content:"verbatim — " attr(data-why);display:block;color:var(--warn);font:600 .78rem/1.4 ui-monospace,monospace;margin-bottom:.5rem;white-space:pre-wrap}
+pre.pseudo{border-left:4px solid var(--accent)}
+pre.mermaid{background:var(--bg);border:1px dashed var(--line)}
+p.status{color:var(--muted);font-size:.92rem}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--line);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--code)}
+blockquote{margin-left:0;padding-left:1rem;border-left:3px solid var(--line);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
+.lede{color:var(--muted)}
+</style>
+</head>
+<body>
+<article class="map">
+<h1>The guard — deny the first source lookup of a session, once</h1>
+<p class="status">Status: shipped (0.2.0) · Read when: changing the guard, <code>sourceTools</code>, <code>exemptPaths</code>, <code>mode</code>, or anything that runs before a tool call</p>
+<section id="what-it-does">
+<h2>What it does</h2>
+<ul><li>Denies the first source lookup of a session (<code>read</code>, <code>grep</code>, <code>glob</code> by default) in a project that has a feature map, with a reason that names the remedy: call <code>feature_map</code>, then call the tool again.</li><li>Never denies twice. The denial sets <code>asked</code>, and <code>asked</code> is checked before every other condition, so the retry always proceeds.</li><li>Never fires in a project with no map: the absence sets <code>waived</code> for the session, so the plugin costs a mapless project exactly zero tool calls.</li><li>Registers no hook at all in <code>mode: &#39;off&#39;</code>, and registers the instruction but no guard in <code>mode: &#39;prompt&#39;</code>.</li><li>Treats a call outside the project, under <code>docs/</code>, or at an instruction file as not a source lookup — those are how a session talks to a project.</li></ul>
+</section>
+<section id="map">
+<h2>Map</h2>
+<ul><li><code>src/index.ts</code> — <code>guardLookup()</code>, <code>denialText()</code>, <code>sessionState()</code>, the <code>settings.mode === &#39;enforce&#39;</code> block in <code>setup()</code>.</li><li><code>src/map.ts</code> — <code>findMapRoot()</code>, the synchronous lookup the guard depends on.</li><li><code>src/index.ts</code> — <code>DEFAULT_EXEMPT</code>.</li></ul>
+</section>
+<section id="how-why">
+<h2>How &amp; why</h2>
+<p>A permission hook runs after the configured rules, sees the action and its resources, and can turn an <code>allow</code> or <code>ask</code> into a <code>deny</code> that carries its reason. It never sees an action that is not one of <code>read</code>, <code>glob</code> or <code>grep</code>, and a configured <code>deny</code> is final before the hook runs — the correct precedence: an explicit deny is stricter than this rule, not looser. Within that, the rule is deny-only and monotonic: the hook can refuse, never permit.</p>
+<p>So the guard needs a synchronous answer to two questions: <em>is there a map?</em> and <em>is this path inside the project?</em> Both are answered by <code>node:fs</code> rather than by an await: <code>findMapRoot()</code> walks upward from the plugin location&#39;s directory with <code>statSync(path, { throwIfNoEntry: false })</code>, and <code>guardLookup()</code> uses <code>existsSync</code> for the &quot;does this file exist&quot; question. The alternative is caching an async answer computed somewhere else, and a stale cache that says &quot;no map&quot; silently disables the guard for a whole session.</p>
+<p><strong>Which directory is &quot;the project&quot; is per-location, not per-plugin.</strong> The host instantiates a plugin for each location that loads it, so <code>ctx.location.directory</code> is the session&#39;s own project root, not a single global folder — a global install still maps each session to the session&#39;s project. The state, however, is a plain <code>Map</code> keyed by session id, created per <code>setup()</code>: it has to outlive one model request but not the server.</p>
+<p>The denial message is the instruction that clears the denial. A permission denial surfaces to the agent as the refusal text, so the text carries the whole remedy: the tool to call, the optional argument that makes it specific, and the fact that this is the only time the session will ask. A denial that leaves the agent guessing costs more than the search it prevented.</p>
+<h3>Traps</h3>
+<ul><li>A denied call is not a thrown error: the agent sees a refusal and retries. Anything that makes the retry fail too is a deadlock, which is why <code>asked</code> is set <em>before</em> the message is attached and checked <em>first</em>.</li><li><code>settings.sourceTools</code> is matched against the live action name. A profile that renames or restricts the fs tools away leaves the guard inert rather than broken — it never invents a tool.</li><li><strong>The action decides what its resource is, and they do not agree.</strong> <code>read</code> carries a path, <code>glob</code> carries a pattern whose head is a path, and <code>grep</code> carries the regular expression with no location at all. A grep is therefore always a source lookup — it is the whole-project hunt the map exists to avoid — while <code>read</code> and <code>glob</code> are judged by where they point. The alternative is a guard that cannot see where a grep searches.</li><li><code>mode: &#39;prompt&#39;</code> exists because a session doing an unusual job (a large mechanical refactor) is better served by the instruction than by the denial. The two modes are the same plugin and the same tools.</li><li><strong>A plugin reload forgets which sessions have consulted the map.</strong> The state is a <code>Map</code> created per <code>setup()</code>, so an install, a restart or a config reload starts every session over and the guard asks once more. The cost is one extra prompt after a reload, which is the right side of the trade — the alternative is state that outlives the code that wrote it.</li></ul>
+</section>
+<section id="config-keys-ui">
+<h2>Config keys / UI</h2>
+<table><thead><tr><th>Key</th><th>Default</th><th>Range</th><th>Set by</th></tr></thead><tbody><tr><td><code>mode</code></td><td><code>enforce</code></td><td><code>enforce</code>, <code>prompt</code>, <code>off</code></td><td>plugin options</td></tr><tr><td><code>sourceTools</code></td><td><code>[&#39;read&#39;,&#39;grep&#39;,&#39;glob&#39;]</code></td><td>action names</td><td>plugin options</td></tr><tr><td><code>exemptPaths</code></td><td><code>[&#39;docs/&#39;,&#39;AGENTS.md&#39;,&#39;CLAUDE.md&#39;,&#39;HANDOFF.md&#39;,&#39;README.md&#39;]</code></td><td>project-relative prefixes</td><td>plugin options</td></tr></tbody></table>
+</section>
+<section id="tests-that-pin-it">
+<h2>Tests that pin it</h2>
+<p><code>test/contract.test.mjs</code> drives the guard directly against a mock context and a scratch project: <code>the guard denies the first source lookup once, and always yields</code>, <code>the guard stands down once the map is read, and in a project without one</code>, <code>mode prompt keeps the instruction and drops the guard</code>, <code>a guard never fires for a call it cannot attribute to a session</code>, <code>a grep with no path is always a source lookup</code>, and the exemption cases.</p>
+<p><code>test/plugin.test.mjs</code> covers the map layer the guard stands on: <code>the reference project is found from a nested directory and not from outside it</code> and <code>a healthy map agrees with itself</code>.</p>
+<p>The denial was also observed end to end in a live session against this repository: a <code>read</code> of <code>src/index.ts</code> was denied with the message below, a <code>feature_map</code> call with a topic returned the sections for the area, and the next <code>read</code> proceeded. That is the loop this page describes, and it is the acceptance test for any change here.</p>
+<pre class="pseudo">read &quot;src/index.ts&quot; reads source in a project that keeps a feature map.
+Call feature_map first — add `topic` if you know the area, otherwise it
+returns the index — and read the sections for that area: they name the files,
+functions and tests, which is cheaper than searching for them. This is the
+only time this session will ask; call read again and it will proceed.</pre>
+</section>
+<section id="related">
+<h2>Related</h2>
+<p><a href="map-tool.html">map-tool.html</a> · <a href="templates.html">templates.html</a> · <a href="packaging.html">packaging.html</a></p>
+</section>
+</article>
+
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="opencode-feature-map">
+<title>opencode-feature-map — features map — feature map</title>
+<style>
+:root{color-scheme:light dark;--fg:#1d2433;--muted:#5b6475;--bg:#fff;--line:#d8dee9;--accent:#0b6e99;--warn:#8a5a00;--code:#f4f6fa}
+@media (prefers-color-scheme:dark){:root{--fg:#e6eaf2;--muted:#9aa4b8;--bg:#11151c;--line:#2b3342;--accent:#6cc4e8;--warn:#e0b25c;--code:#1a202a}}
+*{box-sizing:border-box}
+body{margin:0 auto;max-width:60rem;padding:2rem 1.25rem 4rem;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
+h1,h2,h3{line-height:1.25;margin:2rem 0 .75rem}
+h1{font-size:1.9rem;border-bottom:2px solid var(--line);padding-bottom:.4rem}
+h2{font-size:1.35rem}
+h3{font-size:1.08rem;color:var(--muted)}
+p,ul,ol,table,pre,blockquote{margin:.75rem 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.1em .3em;border-radius:.25rem;font-size:.92em}
+pre{background:var(--code);border:1px solid var(--line);border-radius:.4rem;padding:.8rem 1rem;overflow:auto}
+pre code{background:none;padding:0}
+pre.verbatim{border-left:4px solid var(--warn)}
+pre.verbatim::before{content:"verbatim — " attr(data-why);display:block;color:var(--warn);font:600 .78rem/1.4 ui-monospace,monospace;margin-bottom:.5rem;white-space:pre-wrap}
+pre.pseudo{border-left:4px solid var(--accent)}
+pre.mermaid{background:var(--bg);border:1px dashed var(--line)}
+p.status{color:var(--muted);font-size:.92rem}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--line);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--code)}
+blockquote{margin-left:0;padding-left:1rem;border-left:3px solid var(--line);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
+.lede{color:var(--muted)}
+</style>
+</head>
+<body>
+<article class="map">
+<h1>opencode-feature-map — features map</h1>
+<p>Read this before touching code: find the area, then open only the one or two feature docs it points at.</p>
+<p>Read order: <code>HANDOFF.md</code> (current state) → this index → <strong>the page for your area</strong> → the code. <code>docs/SPEC.md</code> is user-visible behavior; <code>AGENTS.md</code> is process and hard rules; the docs below are the map, the mechanism and the traps.</p>
+<p><strong>Keep this map true in the same commit as the change.</strong> Before staging a commit, update the feature doc(s) for whatever you changed, and add a row here if the doc is new. User-visible behavior also updates <code>docs/SPEC.md</code> in the same commit; a docs-only follow-up commit is the one that gets skipped. Pure refactors with no behavior, mechanism, config or test change need no edit.</p>
+<table><thead><tr><th>Feature</th><th>Doc</th><th>Read when</th></tr></thead><tbody><tr><td>The map tool</td><td><a href="map-tool.html">map-tool.html</a></td><td>changing <code>feature_map</code> or <code>feature_map_check</code>, the ranking, the tiers or the byte budget</td></tr><tr><td>The guard</td><td><a href="enforcement.html">enforcement.html</a></td><td>changing which lookups are denied once per session, <code>sourceTools</code>, <code>exemptPaths</code> or <code>mode</code></td></tr><tr><td>The boilerplate</td><td><a href="templates.html">templates.html</a></td><td>editing <code>templates/</code>, <code>feature_map_init</code>, or what a scaffolded project receives</td></tr><tr><td>Adoption</td><td><a href="adoption.html">adoption.html</a></td><td>changing <code>feature_map_adopt</code>, the conformance report, or anything that writes into an existing project</td></tr><tr><td>Regeneration</td><td><a href="regen.html">regen.html</a></td><td>changing <code>feature_map_regen</code>, the chunker, the placeholder headings or the index reconcile</td></tr><tr><td>The HTML format</td><td><a href="html-format.html">html-format.html</a></td><td>changing <code>src/html.ts</code>, the page format, pseudo/verbatim/mermaid blocks, <code>feature_map_upgrade</code>, or what a page looks like in a browser</td></tr><tr><td>Packaging</td><td><a href="packaging.html">packaging.html</a></td><td>changing the registrations, the commands, the install script, or installing the plugin</td></tr></tbody></table>
+<p>This map is written in HTML: <code>index.html</code> is the index and each row links one page. A legacy <code>README.md</code> map is still read, and <code>feature_map_upgrade</code> converts one without deleting its <code>.md</code> files.</p>
+<p>The index is the entry point, not a glob: pages may live in subdirectories as well as at the top level, so <code>docs/features/*.html</code> alone misses them. Follow the row&#39;s link.</p>
+<section id="page-format">
+<h2>Page format</h2>
+<p>A feature page is an HTML document with an <code>h1</code> title, a <code>p class="status"</code> line and one <code>section</code> per heading. The headings are the retrieval unit: the tool returns one section at a time, so a section is what a later session reads on its own.</p>
+<pre class="verbatim" data-why="the headings and the status line are the retrieval contract; copy them byte for byte">&lt;h1&gt;&lt;Feature&gt; — &lt;one-line summary&gt;&lt;/h1&gt;
+&lt;p class="status"&gt;Status: shipped (vX.Y) · Read when: &lt;trigger&gt;&lt;/p&gt;
+
+&lt;section id="what-it-does"&gt;
+  &lt;h2&gt;What it does&lt;/h2&gt;
+  &lt;ul&gt;&lt;li&gt;3–6 bullets; link &lt;code&gt;docs/SPEC.md&lt;/code&gt; for the user-visible detail.&lt;/li&gt;&lt;/ul&gt;
+&lt;/section&gt;
+
+&lt;section id="map"&gt;
+  &lt;h2&gt;Map&lt;/h2&gt;
+  &lt;p&gt;Files, types, functions and test names — the anti-hunting payload. Names, never line numbers (they rot).&lt;/p&gt;
+&lt;/section&gt;
+
+&lt;section id="how-why"&gt;
+  &lt;h2&gt;How &amp; why&lt;/h2&gt;
+  &lt;p&gt;The mechanism, the invariants and the traps: cause and effect, not a retelling of the bug that produced the rule.&lt;/p&gt;
+&lt;/section&gt;
+
+&lt;section id="config-keys-ui"&gt;
+  &lt;h2&gt;Config keys / UI&lt;/h2&gt;
+  &lt;table&gt;…&lt;/table&gt;
+&lt;/section&gt;
+
+&lt;section id="tests-that-pin-it"&gt;
+  &lt;h2&gt;Tests that pin it&lt;/h2&gt;
+  &lt;p&gt;Test names — run these first when touching the area.&lt;/p&gt;
+&lt;/section&gt;
+
+&lt;section id="related"&gt;
+  &lt;h2&gt;Related&lt;/h2&gt;
+  &lt;ul&gt;&lt;li&gt;Links to the other feature pages.&lt;/li&gt;&lt;/ul&gt;
+&lt;/section&gt;</pre>
+<p>A code-shaped block is pseudocode and the default: <code>&lt;pre class="pseudo"&gt;</code>. Use <code>&lt;pre class="verbatim" data-why="…"&gt;</code> only when the exact bytes must survive, and say why — a verbatim block with no reason is how a copied block escapes review. A graph is <code>&lt;pre class="mermaid"&gt;</code>: the browser draws it and the tool hands an agent the edge list.</p>
+<pre class="pseudo">probe fails → backoff doubles → retry after ceiling → surface the error</pre>
+<p>Keep a page 60–200 lines and split past ~250, and keep a section under about two kilobytes: a section is what a later reader asks for by name, and one that outgrew a single read has to be split with <code>h3</code> before it can be handed over whole. No sentence lives in two docs: <code>docs/SPEC.md</code> is behavior, a feature page is map/mechanism/traps, <code>AGENTS.md</code> is process.</p>
+</section>
+</article>
+
+</body>
+</html>
