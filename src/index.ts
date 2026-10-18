@@ -1496,7 +1496,7 @@ function toolDef(definition) {
 }
 
 /**
- * The argument grammar the five commands share.
+ * The argument grammar the six commands share.
  *
  * `key:value` sets a named argument, a bare flag sets a boolean, and anything
  * left over is the topic — the words someone would actually type after
@@ -1527,7 +1527,7 @@ function parseArgs(text) {
 }
 
 /**
- * The five commands: one per tool, each running the tool behind it.
+ * The six commands: one per tool, each running the tool behind it.
  *
  * A command is a tool call the user can type: `/feature-map guards` runs the
  * same reader `feature_map` uses and injects its reply, so the map is one

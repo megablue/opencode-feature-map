@@ -3,8 +3,8 @@
  *
  * The unit tests next door cover the map, the templates and the regeneration;
  * this file covers the half that only exists inside a session: that the module
- * loads, that `setup()` registers one system-instruction hook, five tools, one
- * permission guard and five commands, that every structured value a tool
+ * loads, that `setup()` registers one system-instruction hook, six tools, one
+ * permission guard and six commands, that every structured value a tool
  * returns is declared by that tool's output schema, that the guard denies
  * exactly once and always yields, and that the commands run the tools behind
  * them and inject their replies.
@@ -713,6 +713,23 @@ test('a project with nothing is sent to the scaffold instead', async () => {
     assert.deepEqual(out.wrote, [], 'nothing is written into an empty project')
     assert.ok(out.text.includes('feature_map_init'), 'the reply names the tool that fits')
     assert.deepEqual(await readdir(root), [])
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('an upgrade of a project with no map answers instead of throwing', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'feature-map-nomap-tool-'))
+  try {
+    const ctx = mockContext({ root })
+    await plugin.setup(ctx)
+    const upgrade = toolNamed(ctx, 'feature_map_upgrade')
+    const out = (await upgrade.execute({}, mockToolContext())).output
+    assertMatchesSchema(out, upgrade.output, 'feature_map_upgrade(no map)')
+    assert.ok(out.text.includes('no map to convert'), out.text)
+    assert.deepEqual(out.wrote, [])
+    assert.equal(out.flagged, 0)
+    assert.equal(out.verbatim, 0)
   } finally {
     await rm(root, { recursive: true, force: true })
   }

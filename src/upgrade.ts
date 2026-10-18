@@ -66,11 +66,18 @@ export async function planUpgrade(root, options: any = {}) {
   const found = findMapRoot(base)
   const mapDir = join((found?.root ?? base), ...MAP_DIR.split('/'))
   if (!found && !existsSync(mapDir)) {
+    // The no-map plan keeps the same keys as the normal one: callers read
+    // `flagged` and `verbatim` unconditionally, so an absent plan that omitted
+    // them would throw on the very case it exists to report.
     return {
       root: base,
       absent: true,
       legacy: false,
+      alreadyHtml: false,
+      prune: options.prune === true,
       entries: [],
+      flagged: [],
+      verbatim: [],
       counts: { pages: 0, writes: 0, exists: 0, flagged: 0, verbatim: 0, prune: 0 },
     }
   }

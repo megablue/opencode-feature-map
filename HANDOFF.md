@@ -9,8 +9,8 @@ disagrees with the code, the code is right. `AGENTS.md` is the process doc,
 This file is the volatile one — it exists so a new session knows *where things
 stand*, not *how they work*.
 
-As of `2026-10-18` — version `0.2.0`, the HTML-format change committed on
-`main` as `c3e0b97`.
+As of `2026-10-18` — version `0.2.0` (`c3e0b97`), plus the crash fix found by
+verifying the live tool, committed on `main`.
 
 ## State
 
@@ -23,9 +23,16 @@ As of `2026-10-18` — version `0.2.0`, the HTML-format change committed on
   gone, replaced by `index.html` and seven `.html` pages, including the new
   `html-format.html`. The index has a `Page format` section and a mermaid
   graph demonstrating the format.
-- **The gate is green**: typecheck, build, **84 tests** (up from 69), smoke
-  (`7` HTML pages, `0` unindexed, `0` unresolved, regen would change `0`) and
-  `measure` (the reference fixture is still Markdown and still reads).
+- **The gate is green**: typecheck, build, **86 tests** (84 at `c3e0b97`),
+  smoke (`7` HTML pages, `0` unindexed, `0` unresolved, regen would change
+  `0`) and `measure` (the reference fixture is still Markdown and still reads).
+- **Live verification found a shipped crash.** Calling the live
+  `feature_map_upgrade` on a project with no map returned
+  `undefined is not an object (evaluating 'plan.flagged.length')`:
+  `planUpgrade()`'s absent branch omitted `flagged`/`verbatim`, which the tool
+  reads before it checks `absent`. Fixed by giving the absent plan the full
+  shape, pinned by two new tests, and recorded as a trap in
+  `html-format.html`.
 - **Live install refreshed**: `npm run plugin:install` and
   `opencode plugin list` show `feature-map local` from the global plugins
   directory. The registered surface is six tools, six commands, one
@@ -41,12 +48,12 @@ As of `2026-10-18` — version `0.2.0`, the HTML-format change committed on
 
 ## Open threads
 
-- The HTML change is committed as `c3e0b97`; nothing is left in the working
-  tree.
-- Exercise `/feature-map-upgrade` and `/feature-map` live after the server
-  picks up the reinstall; the registrations and the tool bodies are pinned by
-  `test/contract.test.mjs`, but the live command path is the last unobserved
-  step.
+- Nothing is left in the working tree. The `c3e0b97` HTML change and the
+  no-map `planUpgrade()` fix are both committed and installed.
+- **Live paths are all observed**: after reloading the reinstalled plugin, a
+  human ran `/feature-map` and `/feature-map-upgrade` against a real session.
+  The no-map reply reads "no map to convert" instead of throwing; the tool
+  bodies and the slash dispatch are now both confirmed.
 - `reference/PingLatencyOverlay/` is deliberately still Markdown: it is the
   fixture that pins dual-read and the upgrade tests. Do not convert it.
 

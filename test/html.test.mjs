@@ -29,7 +29,7 @@ import {
   renderMapDocument,
   scanHtml,
 } from '../dist/html.js'
-import { applyUpgrade, planUpgrade } from '../dist/upgrade.js'
+import { applyUpgrade, planUpgrade, renderUpgradeText } from '../dist/upgrade.js'
 import { applyRegen, planRegen } from '../dist/regen.js'
 
 const here = fileURLToPath(new URL('.', import.meta.url))
@@ -246,6 +246,25 @@ test('a legacy map is found, read and reported as legacy', async () => {
     assert.equal(report.pages[0].format, 'markdown')
   } finally {
     await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('a project with no map plans an absent upgrade rather than throwing', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'feature-map-nomap-'))
+  const withMap = await legacyProject()
+  try {
+    const plan = await planUpgrade(root)
+    assert.equal(plan.absent, true)
+    assert.deepEqual(plan.entries, [])
+    // The keys callers read must exist on the absent plan too — the tool reads
+    // `flagged.length` and `verbatim.length` before it looks at `absent`.
+    assert.deepEqual(Object.keys(plan).sort(), Object.keys(await planUpgrade(withMap)).sort())
+    assert.equal(plan.flagged.length, 0)
+    assert.equal(plan.verbatim.length, 0)
+    assert.ok(renderUpgradeText(plan).includes('no map to convert'))
+  } finally {
+    await rm(root, { recursive: true, force: true })
+    await rm(withMap, { recursive: true, force: true })
   }
 })
 
