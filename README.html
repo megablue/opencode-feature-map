@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>opencode-feature-map</title>
+<meta name="generator" content="html-as-doc">
+<meta name="doc-source" content="README.md">
+<style>
+:root{color-scheme:light dark;--fg:#1d2433;--muted:#5b6475;--bg:#fff;--panel:#f7f9fc;--line:#d8dee9;--accent:#0b6e99;--code:#f4f6fa;--warn:#8a5a00}
+@media (prefers-color-scheme:dark){:root{--fg:#e6eaf2;--muted:#9aa4b8;--bg:#11151c;--panel:#161c25;--line:#2b3342;--accent:#6cc4e8;--code:#1a202a;--warn:#e0b25c}}
+*{box-sizing:border-box}
+body{margin:0 auto;max-width:54rem;padding:2.5rem 1.25rem 5rem;background:var(--bg);color:var(--fg);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+main{display:block}
+h1,h2,h3,h4{line-height:1.25;margin:2.2rem 0 .8rem;scroll-margin-top:1rem}
+section{scroll-margin-top:1rem}
+h1{font-size:1.95rem;border-bottom:2px solid var(--line);padding-bottom:.45rem;margin-top:0}
+h2{font-size:1.4rem;border-bottom:1px solid var(--line);padding-bottom:.3rem}
+h3{font-size:1.12rem}
+h4{font-size:1rem;color:var(--muted)}
+p,ul,ol,table,pre,blockquote{margin:.8rem 0}
+a{color:var(--accent);text-decoration-thickness:.06em;text-underline-offset:.15em}
+a:hover{text-decoration-style:dotted}
+code{background:var(--code);padding:.12em .34em;border-radius:.25rem;font:0.9em/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{position:relative;background:var(--code);border:1px solid var(--line);border-radius:.45rem;padding:.85rem 1rem;overflow:auto}
+pre code{background:none;padding:0;font-size:.875rem;line-height:1.55}
+pre.code[data-lang]::before{content:attr(data-lang);position:absolute;top:0;right:0;padding:.15rem .5rem;border-left:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0 .45rem 0 .45rem;background:var(--panel);color:var(--muted);font:600 .68rem/1.4 ui-monospace,monospace;text-transform:lowercase;letter-spacing:.03em}
+pre.verbatim{border-left:4px solid var(--warn)}
+pre.verbatim::before{content:"verbatim — " attr(data-why);display:block;color:var(--warn);font:600 .76rem/1.4 ui-monospace,monospace;margin-bottom:.5rem;white-space:pre-wrap}
+pre.mermaid{background:var(--bg);border:1px dashed var(--line)}
+table{border-collapse:collapse;width:100%;display:block;overflow:auto}
+th,td{border:1px solid var(--line);padding:.45rem .7rem;text-align:left;vertical-align:top}
+th{background:var(--code);font-weight:600}
+blockquote{margin-left:0;padding:.1rem 0 .1rem 1rem;border-left:3px solid var(--line);color:var(--muted)}
+blockquote>:first-child{margin-top:0}
+blockquote>:last-child{margin-bottom:0}
+hr{border:0;border-top:1px solid var(--line);margin:2.4rem 0}
+ul,ol{padding-left:1.6rem}
+li{margin:.25rem 0}
+li>ul,li>ol{margin:.25rem 0}
+li.task{list-style:none;margin-left:-1.35rem}
+li.task input{margin-right:.5rem}
+img{max-width:100%;height:auto}
+.doc-header{color:var(--muted);font-size:.82rem;margin-bottom:2rem;display:flex;flex-wrap:wrap;gap:.4rem .75rem;align-items:baseline}
+.doc-header .doc-kicker{margin:0}
+.doc-header code{font-size:.95em}
+.doc-footer{margin-top:3.5rem;padding-top:1rem;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem}
+.doc-footer p{margin:.25rem 0}
+.skip-link{position:absolute;left:-999px}
+.skip-link:focus{left:1rem;top:1rem;background:var(--panel);padding:.5rem;border-radius:.3rem;z-index:9}
+@media print{:root{--bg:#fff;--fg:#000}body{max-width:none;padding:0}.doc-header,.doc-footer{color:#444}pre,table,blockquote{break-inside:avoid}}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="doc-header">
+<p class="doc-kicker">Rendered from <code>README.md</code></p>
+</header>
+<main id="content">
+<h1 id="opencode-feature-map">opencode-feature-map</h1>
+<p>An OpenCode plugin that makes an agent read your project&#39;s documentation
+before it reads your source.</p>
+<p>Finding the code for one area usually means grepping the tree, opening three
+files, and working out which parts matter. A feature map replaces that with one
+page per feature — the files, types, tests and traps for that area — so the
+agent can ask for exactly the piece it needs. <code>opencode-feature-map</code> puts that
+map in the agent&#39;s prompt, gives it six tools to read the map at whatever size
+the question deserves, exposes the same six as typed commands, and refuses the
+first source lookup of a session in a project that has a map, once, with the
+reason and the remedy.</p>
+<p>It also gets you the map in the first place: <code>feature_map_init</code> for a project
+that has nothing, <code>feature_map_adopt</code> for one that already has documentation,
+<code>feature_map_regen</code> for one whose map has outgrown its shape, and
+<code>feature_map_upgrade</code> to move a Markdown map to the HTML format.</p>
+<section id="what-you-get">
+<h2>What you get</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>feature_map</code></td>
+<td>Reads the map: the index, the sections for a topic, one page&#39;s shape, one section, one <code>###</code>, or the whole page.</td>
+</tr>
+<tr>
+<td><code>feature_map_check</code></td>
+<td>Reports drift — pages no index row links, rows whose link goes nowhere — and, separately, sections too big to read in one piece.</td>
+</tr>
+<tr>
+<td><code>feature_map_init</code></td>
+<td>Scaffolds the workflow into a project: <code>AGENTS.md</code>, <code>HANDOFF.md</code>, <code>docs/SPEC.md</code> and the map index.</td>
+</tr>
+<tr>
+<td><code>feature_map_adopt</code></td>
+<td>Reports what an existing project is missing, and writes only the files that do not exist.</td>
+</tr>
+<tr>
+<td><code>feature_map_regen</code></td>
+<td>Rewrites an existing map so it reads well: the missing headings and <code>Status:</code> lines, every oversized section divided into <code>###</code>, and the index reconciled.</td>
+</tr>
+<tr>
+<td><code>feature_map_upgrade</code></td>
+<td>Converts a Markdown map to HTML: an <code>.html</code> sibling per page, <code>index.html</code> for the index, <code>.md</code> links rewritten. Additive unless <code>prune</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Plus a system-prompt section that states the read order, and a guard that
+enforces it once per session (see <em>What you will notice</em>).</p>
+<h3 id="the-same-six-as-commands">The same six, as commands</h3>
+<p>Each tool is also a command, so the map is one keystroke away for a person who
+does not want to ask the agent for it. The reply arrives as a message in the
+session, without spending a model turn:</p>
+<pre class="code"><code>/feature-map                       the index
+/feature-map guards                the sections for a topic
+/feature-map page:enforcement.md   one page&#39;s shape
+/feature-map-check                 drift and sizes
+/feature-map-init                  the scaffold plan
+/feature-map-init write            the scaffold, written
+/feature-map-adopt focus:sizes     one part of an adoption report
+/feature-map-regen apply           a map rewritten in place
+/feature-map-upgrade apply         a Markdown map converted to HTML</code></pre>
+<p>The grammar is the tool&#39;s arguments, typed: <code>key:value</code> for a named argument, a
+bare word for a boolean (<code>write</code>, <code>force</code>, <code>apply</code>, <code>show</code>, <code>full</code>, <code>skeleton</code>),
+<code>offset:N</code>, <code>only:a,b</code>, <code>summary:&lt;the rest of the line&gt;</code>, and whatever words are
+left over are the topic.</p>
+</section>
+<section id="install">
+<h2>Install</h2>
+<p>The plugin is a package directory, so it installs by building it and copying it
+where OpenCode discovers plugins. From this checkout:</p>
+<pre class="code" data-lang="sh"><code>npm install
+npm run build
+npm run plugin:install        # → ~/.config/opencode/plugins/feature-map</code></pre>
+<p>That is the whole install. The running server loads it from the plugins
+directory; if it does not, <code>opencode service restart</code> — and
+<code>opencode plugin list</code> should show a <code>feature-map</code> row.</p>
+<p>For a single project instead of every project, install into that project&#39;s
+<code>.opencode/plugins/</code> directory:</p>
+<pre class="code" data-lang="sh"><code>npm run plugin:install:project # run inside the project</code></pre>
+<h3 id="uninstall">Uninstall</h3>
+<pre class="code" data-lang="sh"><code>npm run plugin:uninstall      # removes ~/.config/opencode/plugins/feature-map</code></pre>
+<p><code>--remove</code> deletes only a copy of <em>this</em> package: a <code>feature-map</code> directory in
+the plugins path that is not this package is named and left alone. For a
+project install, <code>npm run plugin:uninstall -- --project</code> — the extra <code>--</code>
+forwards the flag past npm.</p>
+<h3 id="why-a-copy-and-not-a-config-entry">Why a copy and not a config entry?</h3>
+<p>OpenCode also loads plugins from the <code>plugins</code> array in <code>opencode.json(c)</code>, and
+the documented forms for a local directory are an absolute path, a
+config-relative path and a <code>file:///</code> URL. On Windows (verified against
+OpenCode 2.0.26) the loader drops all three without a log line — the plugin
+simply never appears — while the discovery directory above works everywhere. A
+symlink or junction into the checkout does not help either: Windows reports a
+junction as a symlink to a directory scan, so it is skipped. So the supported
+route is the copy, which is also why <code>scripts/install.mjs</code> overwrites a previous
+copy: upgrading is the same two commands.</p>
+<h3 id="after-a-code-change">After a code change</h3>
+<p><code>scripts/install.mjs</code> copies the <strong>built</strong> output (<code>dist/</code>), so edit → `npm run
+build<code>→</code>npm run plugin:install`. A running server picks the new copy up from
+the plugins directory without a restart. Editing a <em>project&#39;s</em> docs needs
+nothing.</p>
+</section>
+<section id="starting-a-new-project">
+<h2>Starting a new project</h2>
+<p>Two steps: get the documents, then fill in the parts only you can answer.</p>
+<p><strong>1. Ask for the scaffold.</strong> Say <em>&quot;scaffold the documentation workflow here&quot;</em> —
+or name the tool, <code>feature_map_init</code>. It returns the four documents rendered for
+your project and writes nothing:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>What it is for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AGENTS.md</code></td>
+<td>Process and hard rules: the commands, the workflow, the constraints that apply to every change.</td>
+</tr>
+<tr>
+<td><code>docs/features/README.md</code></td>
+<td>The map index and the page template — the entry point the agent reads first.</td>
+</tr>
+<tr>
+<td><code>docs/SPEC.md</code></td>
+<td>User-visible behavior, readable without knowing the code.</td>
+</tr>
+<tr>
+<td><code>HANDOFF.md</code></td>
+<td>Volatile session state: what is in flight, what is next.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>2. Write them.</strong> Either ask for <code>feature_map_init</code> with <code>write: true</code> — which
+writes the files directly, the plugin having no sandbox seam to go through — or
+write the returned text yourself. Existing files are never replaced; pass
+<code>force</code> only when you mean it.</p>
+<p><strong>3. Fill in the marked places.</strong> The documents say what is still a placeholder:
+the layout, the commands and the hard rules in <code>AGENTS.md</code>, and the first row of
+the map index. A scaffolded document that ships unfilled reads as authoritative
+and says nothing — the placeholders are visible on purpose.</p>
+<p><strong>4. Write your first page.</strong> Copy the page template out of
+<code>docs/features/README.md</code> and give it a feature: what it does, the names in it,
+how it works, its settings, the tests that pin it, and what it relates to. Then
+ask for <code>feature_map_adopt</code> — it generates the index row from the page&#39;s own
+title and <code>Read when:</code> line, so you do not hand-maintain the table.</p>
+<p><strong>5. Confirm.</strong> <code>feature_map_check</code> should report the map agrees with itself.</p>
+<p>From then on the loop is the workflow the documents describe: read the map
+before the code, and update the page in the same commit as the change.</p>
+</section>
+<section id="bringing-an-existing-project">
+<h2>Bringing an existing project</h2>
+<p><code>feature_map_adopt</code> is read-only unless you pass <code>apply: true</code>, and it **never
+edits a file that already exists**. What it reports depends on what you have.
+If your map is Markdown, <code>feature_map_upgrade</code> converts it to HTML afterwards —
+additively, unless you ask for <code>prune</code>.</p>
+<h3 id="if-you-already-have-some-form-of-feature-map">If you already have some form of feature map</h3>
+<p>Ask for <code>feature_map_adopt</code> with no arguments. You get a one-line summary and
+five sections:</p>
+<ul>
+<li><strong>Index</strong> — rows whose link does not resolve, pages no row links, rows with no
+<code>Read when:</code> trigger, and the rows to add for anything unlinked.
+</li>
+<li><strong>Pages</strong> — which of the six mandated headings each page is missing, which
+pages have no <code>Status: … Read when:</code> line, which are not linked.
+</li>
+<li><strong>Sections</strong> — every section past the size limit, and whether it <em>already</em>
+divides at <code>###</code> level or genuinely needs splitting. A long section that is
+already divided is not work, and the report says so.
+</li>
+<li><strong>AGENTS.md</strong> — which of the template&#39;s blocks your instruction file lacks,
+by name. Your own wording is never touched; you get the missing blocks to
+paste.
+</li>
+<li><strong>Outside the map</strong> — markdown under <code>docs/</code> that is not a page of the map,
+with its size and section count. Reported, never moved: whether
+<code>docs/GAME.md</code> should become a feature page is your call, not the tool&#39;s.
+</li>
+</ul>
+<p>Then a <strong>plan</strong>, where every item is labelled <code>deterministic</code> (derived from what
+is already in your files — the index rows, the missing blocks) or <code>judgment</code>
+(a <code>Read when:</code> trigger, the content of a heading, where a long section splits).
+<code>apply: true</code> writes only the files that do not exist; everything else is text
+for you or your agent to place.</p>
+<p>If your map is already in good shape, this is short: it reports the drift, the
+oversized sections and the documents outside the map, and stops.</p>
+<h3 id="if-your-map-has-outgrown-its-shape">If your map has outgrown its shape</h3>
+<p>A map that was written before the workflow existed often reads as one long
+section that is too big to hand anyone in one piece. <code>feature_map_regen</code> rewrites
+it: it adds the missing <code>##</code> headings and a <code>Status: … Read when:</code> line, divides
+every oversized section into <code>###</code> chunks that fit a single read, and reconciles
+the index with the pages that exist. It changes no prose — the one edit it makes
+to a sentence is turning a short bold lead-in into the heading above it — and it
+touches nothing outside <code>docs/features/</code>.</p>
+<p>A chunk it cannot name from your own words is left visibly unnamed:</p>
+<pre class="code"><code>### &lt;!-- chunk 1/2: name this --&gt;</code></pre>
+<p>so naming them afterwards is a pass over a list in the reply rather than a hunt.
+It writes nothing until you pass <code>apply: true</code>, and running it twice changes
+nothing the second time. Ask for it with <code>show: true</code> if you want to read the
+result before it is written.</p>
+<h3 id="if-you-have-no-feature-map">If you have no feature map</h3>
+<p>Three cases, and the plugin says which one you are in:</p>
+<ul>
+<li><strong>You have docs but no map</strong> (say <code>docs/</code> with a spec and some notes). The
+report lists those documents as candidates and tells you there are no pages
+yet. The migration is two passes: write your feature pages under
+<code>docs/features/</code> first — one page per feature, using the template — then run
+<code>feature_map_adopt</code> again and it generates the index from them.
+<code>feature_map_init</code> hands you the index and page templates to start from.
+</li>
+<li><strong>You have an <code>AGENTS.md</code> but no docs.</strong> The report names the instruction
+blocks your <code>AGENTS.md</code> is missing and points at <code>feature_map_init</code> for the
+map skeleton. <code>apply: true</code> writes the map index, <code>HANDOFF.md</code> and
+<code>docs/SPEC.md</code>, and leaves your <code>AGENTS.md</code> exactly as it is.
+</li>
+<li><strong>You have nothing</strong> — no docs and no <code>AGENTS.md</code>. There is nothing to adopt:
+the reply says so and sends you to <code>feature_map_init</code>, which is the *Starting a
+new project* flow above.
+</li>
+</ul>
+<p>Whichever case you are in, the plugin will not rewrite your prose, invent a
+<code>Read when:</code> trigger, decide what counts as a feature, or move a file. It
+measures, proposes, and — when asked — creates what is missing.</p>
+</section>
+<section id="writing-the-pages">
+<h2>Writing the pages</h2>
+<p>The map is a set of HTML documents a person can open in a browser and an agent
+reads as text. One page per feature, with these headings in this order:</p>
+<pre class="code" data-lang="html"><code>&lt;h1&gt;&lt;Feature&gt; — &lt;one-line summary&gt;&lt;/h1&gt;
+&lt;p class=&quot;status&quot;&gt;Status: shipped (vX.Y) · Read when: &lt;the phrase someone would search for&gt;&lt;/p&gt;
+
+&lt;h2&gt;What it does&lt;/h2&gt;      what it is for, in a few bullets
+&lt;h2&gt;Map&lt;/h2&gt;               the files, types, functions and test names — the payload
+&lt;h2&gt;How &amp;amp; why&lt;/h2&gt;     the mechanism, the invariants, the traps
+&lt;h2&gt;Config keys / UI&lt;/h2&gt;  a dense table: key, default, range, where it is set
+&lt;h2&gt;Tests that pin it&lt;/h2&gt; the test names to run first
+&lt;h2&gt;Related&lt;/h2&gt;           links to the other pages</code></pre>
+<p><code>feature_map_init</code> hands over a full index and page skeleton; you do not have to
+write the shell from scratch.</p>
+<p>Three rules make the map worth reading:</p>
+<ul>
+<li><strong>Names, never line numbers.</strong> Line numbers rot; a symbol name survives a
+refactor.
+</li>
+<li><strong>Keep a section under about two kilobytes</strong>, splitting longer ones with
+<code>&lt;h3&gt;</code>. A section is what a later session reads on its own, and one that
+outgrew a single read has to be divided before it can be handed over whole.
+<code>feature_map_check</code> names the ones that have.
+</li>
+<li><strong>A block is pseudocode unless it must be exact.</strong> <code>&lt;pre class=&quot;pseudo&quot;&gt;</code> is the
+default for a code shape; <code>&lt;pre class=&quot;verbatim&quot; data-why=&quot;…&quot;&gt;</code> is for bytes
+that must survive, and the reason is required. A graph is
+<code>&lt;pre class=&quot;mermaid&quot;&gt;</code> — the browser draws it and the agent gets the edge
+list.
+</li>
+</ul>
+<p>A map written as Markdown still works. <code>feature_map_upgrade</code> writes the HTML
+siblings (<code>index.html</code> for <code>README.md</code>) and leaves the <code>.md</code> files in place
+unless you pass <code>prune</code>.</p>
+</section>
+<section id="what-you-will-notice">
+<h2>What you will notice</h2>
+<p>In a project that has a map, the <strong>first</strong> <code>read</code>, <code>grep</code> or <code>glob</code> of a session
+is denied once:</p>
+<pre class="code"><code>read &quot;src/index.ts&quot; reads source in a project that keeps a feature map. Call
+feature_map first — add `topic` if you know the area, otherwise it returns the
+index — and read the sections for that area: they name the files, functions and
+tests, which is cheaper than searching for them. This is the only time this
+session will ask; call read again and it will proceed.</code></pre>
+<p>That is the whole interruption. It never happens twice in a session, never
+happens in a project without a map, and never happens when the agent has already
+consulted the map. Reading <code>docs/</code>, <code>AGENTS.md</code>, <code>HANDOFF.md</code> or a <code>README.md</code>
+is never treated as a source lookup.</p>
+<p>If a session is doing something the map does not help with — a large mechanical
+refactor, say — set <code>mode</code> to <code>prompt</code> for the instruction without the guard, or
+<code>off</code> to silence both.</p>
+</section>
+<section id="configuration">
+<h2>Configuration</h2>
+<p>Options are passed to the plugin through its entry in <code>opencode.json(c)</code>:</p>
+<pre class="code" data-lang="jsonc"><code>{
+  &quot;plugins&quot;: [
+    {
+      &quot;package&quot;: &quot;./plugins/feature-map&quot;,
+      &quot;options&quot;: {
+        &quot;mode&quot;: &quot;enforce&quot;,
+        &quot;maxBytes&quot;: 12000
+      }
+    }
+  ]
+}</code></pre>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mode</code></td>
+<td><code>enforce</code></td>
+<td><code>enforce</code> denies the first source lookup once; <code>prompt</code> keeps the instruction and drops the guard; <code>off</code> silences both. An unknown value falls back to <code>enforce</code>.</td>
+</tr>
+<tr>
+<td><code>sourceTools</code></td>
+<td><code>read</code>, <code>grep</code>, <code>glob</code></td>
+<td>Which tools count as a source lookup.</td>
+</tr>
+<tr>
+<td><code>exemptPaths</code></td>
+<td><code>docs/</code>, <code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>HANDOFF.md</code>, <code>README.md</code></td>
+<td>Project-relative prefixes that are never a source lookup.</td>
+</tr>
+<tr>
+<td><code>maxBytes</code></td>
+<td><code>12000</code></td>
+<td>Byte budget for one reply; a capped reply says where to resume.</td>
+</tr>
+<tr>
+<td><code>sectionsPerTopic</code></td>
+<td><code>3</code></td>
+<td>How many sections a topic reply may carry.</td>
+</tr>
+<tr>
+<td><code>maxSectionBytes</code></td>
+<td><code>2048</code></td>
+<td>The size a section should be readable in; past it, the checker reports the section.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="where-the-details-live">
+<h2>Where the details live</h2>
+<p>This README is for using the plugin. The rest is in the repository:</p>
+<ul>
+<li><a href="docs/SPEC.md"><code>docs/SPEC.md</code></a> — what a session sees, in full.
+</li>
+<li><a href="docs/features/index.html"><code>docs/features/index.html</code></a> — the feature map for this plugin
+itself: <a href="docs/features/map-tool.html">the map tool</a>,
+<a href="docs/features/enforcement.html">the guard</a>,
+<a href="docs/features/templates.html">the boilerplate</a>,
+<a href="docs/features/adoption.html">adoption</a>,
+<a href="docs/features/regen.html">regeneration</a>,
+<a href="docs/features/html-format.html">the HTML format</a>,
+<a href="docs/features/packaging.html">packaging</a>.
+</li>
+<li><a href="AGENTS.md"><code>AGENTS.md</code></a> — how to work on the plugin.
+</li>
+<li><a href="HANDOFF.md"><code>HANDOFF.md</code></a> — where things currently stand.
+</li>
+<li><a href="templates/"><code>templates/</code></a> — the boilerplate the plugin hands to a project.
+</li>
+</ul>
+</section>
+<section id="license">
+<h2>License</h2>
+<p>MIT — see <a href="LICENSE"><code>LICENSE</code></a>.</p>
+</section>
+</main>
+<footer class="doc-footer">
+<p>Generated by <code>html-as-doc</code> from <code>README.md</code>.</p>
+<p>The Markdown file is a pointer; this HTML page is the source of truth. Edit it directly and re-run <code>html-docs.mjs verify</code>.</p>
+</footer>
+
+</body>
+</html>

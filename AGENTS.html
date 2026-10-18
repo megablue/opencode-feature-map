@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AGENTS.md</title>
+<meta name="generator" content="html-as-doc">
+<meta name="doc-source" content="AGENTS.md">
+<style>
+:root{color-scheme:light dark;--fg:#1d2433;--muted:#5b6475;--bg:#fff;--panel:#f7f9fc;--line:#d8dee9;--accent:#0b6e99;--code:#f4f6fa;--warn:#8a5a00}
+@media (prefers-color-scheme:dark){:root{--fg:#e6eaf2;--muted:#9aa4b8;--bg:#11151c;--panel:#161c25;--line:#2b3342;--accent:#6cc4e8;--code:#1a202a;--warn:#e0b25c}}
+*{box-sizing:border-box}
+body{margin:0 auto;max-width:54rem;padding:2.5rem 1.25rem 5rem;background:var(--bg);color:var(--fg);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+main{display:block}
+h1,h2,h3,h4{line-height:1.25;margin:2.2rem 0 .8rem;scroll-margin-top:1rem}
+section{scroll-margin-top:1rem}
+h1{font-size:1.95rem;border-bottom:2px solid var(--line);padding-bottom:.45rem;margin-top:0}
+h2{font-size:1.4rem;border-bottom:1px solid var(--line);padding-bottom:.3rem}
+h3{font-size:1.12rem}
+h4{font-size:1rem;color:var(--muted)}
+p,ul,ol,table,pre,blockquote{margin:.8rem 0}
+a{color:var(--accent);text-decoration-thickness:.06em;text-underline-offset:.15em}
+a:hover{text-decoration-style:dotted}
+code{background:var(--code);padding:.12em .34em;border-radius:.25rem;font:0.9em/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{position:relative;background:var(--code);border:1px solid var(--line);border-radius:.45rem;padding:.85rem 1rem;overflow:auto}
+pre code{background:none;padding:0;font-size:.875rem;line-height:1.55}
+pre.code[data-lang]::before{content:attr(data-lang);position:absolute;top:0;right:0;padding:.15rem .5rem;border-left:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0 .45rem 0 .45rem;background:var(--panel);color:var(--muted);font:600 .68rem/1.4 ui-monospace,monospace;text-transform:lowercase;letter-spacing:.03em}
+pre.verbatim{border-left:4px solid var(--warn)}
+pre.verbatim::before{content:"verbatim — " attr(data-why);display:block;color:var(--warn);font:600 .76rem/1.4 ui-monospace,monospace;margin-bottom:.5rem;white-space:pre-wrap}
+pre.mermaid{background:var(--bg);border:1px dashed var(--line)}
+table{border-collapse:collapse;width:100%;display:block;overflow:auto}
+th,td{border:1px solid var(--line);padding:.45rem .7rem;text-align:left;vertical-align:top}
+th{background:var(--code);font-weight:600}
+blockquote{margin-left:0;padding:.1rem 0 .1rem 1rem;border-left:3px solid var(--line);color:var(--muted)}
+blockquote>:first-child{margin-top:0}
+blockquote>:last-child{margin-bottom:0}
+hr{border:0;border-top:1px solid var(--line);margin:2.4rem 0}
+ul,ol{padding-left:1.6rem}
+li{margin:.25rem 0}
+li>ul,li>ol{margin:.25rem 0}
+li.task{list-style:none;margin-left:-1.35rem}
+li.task input{margin-right:.5rem}
+img{max-width:100%;height:auto}
+.doc-header{color:var(--muted);font-size:.82rem;margin-bottom:2rem;display:flex;flex-wrap:wrap;gap:.4rem .75rem;align-items:baseline}
+.doc-header .doc-kicker{margin:0}
+.doc-header code{font-size:.95em}
+.doc-footer{margin-top:3.5rem;padding-top:1rem;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem}
+.doc-footer p{margin:.25rem 0}
+.skip-link{position:absolute;left:-999px}
+.skip-link:focus{left:1rem;top:1rem;background:var(--panel);padding:.5rem;border-radius:.3rem;z-index:9}
+@media print{:root{--bg:#fff;--fg:#000}body{max-width:none;padding:0}.doc-header,.doc-footer{color:#444}pre,table,blockquote{break-inside:avoid}}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="doc-header">
+<p class="doc-kicker">Rendered from <code>AGENTS.md</code></p>
+</header>
+<main id="content">
+<h1 id="agents-md">AGENTS.md</h1>
+<p>**Before you grep, glob or open a source file: read <code>HANDOFF.md</code>, then
+<code>docs/features/index.html</code>, then only the feature page(s) for the area you are
+about to change. The feature pages name the files, functions and tests you
+would otherwise hunt for — the code comes after them, not before.**</p>
+<p>opencode-feature-map is the OpenCode counterpart of the DSH feature-map tool family (<code>feature_map</code>, <code>feature_map_init</code>, <code>feature_map_check</code>): it keeps a project&#39;s feature map in <code>docs/features/</code> — one page per feature naming the files, types, functions and pinning tests for that area — so an agent reads the page before the code.</p>
+<p>Three kinds of document, and keeping them apart is the point:</p>
+<ul>
+<li><strong><code>docs/SPEC.md</code> is product behavior</strong> — what the product does and what a
+user sees, readable without knowing the code. Behavior belongs there even
+when the code is where the reason for it lives. Here the page is rendered:
+the source of truth is <code>docs/SPEC.html</code>, and <code>docs/SPEC.md</code> is a pointer stub
+that exists only so tools looking for that name still find it. <code>README.md</code>
+stays canonical, with <code>README.html</code> a rendering beside it.
+</li>
+<li><strong><code>docs/features/</code> is the feature map</strong> — one page per feature with its
+files, mechanisms, traps and pinning tests. Read the page for the area you
+are about to change; keep it true in the same commit.
+</li>
+<li><strong>This file is process and hard rules</strong> — the commands, the workflow and
+the constraints that apply across every feature.
+</li>
+</ul>
+<p>Where a rule has a behavior half and a mechanism half, the behavior half is a
+pointer to <code>docs/SPEC.html</code> and the mechanism half to its feature page rather
+than a second copy: two copies of a default value is one more thing that can
+be wrong.</p>
+<section id="read-first">
+<h2>Read first</h2>
+<p><code>HANDOFF.md</code> holds the current state; if it is missing, carry on with the
+feature map and the code. Then <code>docs/features/index.html</code> — the feature map —
+and only the feature doc(s) for what you are about to change.
+<code>docs/SPEC.html</code> is user-visible behavior (its <code>.md</code> is a pointer); this file
+is process and hard rules; the feature docs are the map, the mechanism and the
+traps.</p>
+</section>
+<section id="layout">
+<h2>Layout</h2>
+<p>One bullet per top-level directory: what it owns, and why it is separate from
+its neighbour.</p>
+<ul>
+<li><strong><code>src/</code></strong> — the plugin, in six files. <code>index.ts</code> is the only OpenCode-aware
+file: the host adapters (<code>toolDef</code>, <code>buildCommands</code>, <code>parseArgs</code>), the guard
+and the <code>Plugin.define</code> entry. <code>map.ts</code>, <code>regen.ts</code> and <code>templates.ts</code> are
+byte-faithful ports of the DSH implementation (<code>@ts-nocheck</code>, pinned by the
+suite rather than the typechecker) — the map reading/ranking/checking, the
+regeneration, and the scaffold templates. <code>html.ts</code> is the format seam: the
+tolerant HTML reader, the canonical-text writer, the mermaid edge list and the
+Markdown converter; <code>upgrade.ts</code> is the additive migration built on it. The
+files stay separate so the OpenCode surface can change without the ported
+logic drifting from its original.
+</li>
+<li><strong><code>dist/</code></strong> — the built output (<code>tsc</code>). What <code>scripts/install.mjs</code> copies;
+never edit by hand, and always rebuilt as part of the gate.
+</li>
+<li><strong><code>templates/</code></strong> — the four <code>.tmpl</code> boilerplate files a scaffolded project
+receives. The suffix is load-bearing (it must never be read as an
+instruction file); see <code>docs/features/templates.html</code>. The map template is
+<code>docs/features/index.html.tmpl</code>.
+</li>
+<li><strong><code>test/</code></strong> — <code>plugin.test.mjs</code> (the map/template layer on <code>dist/</code>),
+<code>html.test.mjs</code> (the HTML format, the upgrade and HTML regeneration),
+<code>contract.test.mjs</code> (the host surface: registrations, tools, guard, commands),
+<code>install.test.mjs</code> (the install/uninstall surface). The tests import the
+built <code>dist/</code>, so the build is part of the test gate.
+</li>
+<li><strong><code>scripts/</code></strong> — <code>test.mjs</code> (runs every <code>*.test.mjs</code> in one process),
+<code>smoke.mjs</code> (a plan-only pass over this repository), <code>measure.mjs</code> (the
+ranking savings on the reference fixture), <code>install.mjs</code> (install/uninstall
+into a plugins directory).
+</li>
+<li><strong><code>reference/PingLatencyOverlay/</code></strong> — a real conformant feature map from
+another project, used as the fixture the checker, the regenerator and the
+measure script are pinned against. Not this plugin&#39;s documentation.
+</li>
+<li><strong><code>.github/workflows/ci.yml</code></strong> — the same gate as the local chain, on Node 22.
+</li>
+</ul>
+</section>
+<section id="commands">
+<h2>Commands</h2>
+<p>Run from the repository root. The gate before a commit is the whole chain, not
+the test run alone:</p>
+<pre class="code" data-lang="powershell"><code>npm run typecheck   # tsc --noEmit        — every src module must be clean
+npm run build       # tsc                 — emits dist/, which the tests import
+npm test            # scripts/test.mjs    — every test/*.test.mjs, one process
+npm run smoke       # scripts/smoke.mjs . — a plan-only pass over this repo
+npm run measure     # scripts/measure.mjs . — ranking savings on the fixture</code></pre>
+<p>Install for live use (global or per-project), after the build:</p>
+<pre class="code" data-lang="powershell"><code>npm run plugin:install            # ~/.config/opencode/plugins/feature-map
+npm run plugin:install:project    # .opencode/plugins/feature-map in this project
+npm run plugin:uninstall</code></pre>
+<p>The gate is red if any step fails; <code>npm test</code> alone does not cover the build
+the tests import, and neither covers a live-registration check — after a change
+to the registrations or the install script, <code>opencode plugin list</code> (with the
+copy refreshed by <code>plugin:install</code>) is the confirmation that it loads.</p>
+</section>
+<section id="workflow">
+<h2>Workflow</h2>
+<ul>
+<li><strong>The features map is part of the change, not the cleanup.</strong> Before staging a
+commit, update the feature doc(s) for whatever you changed
+(<code>docs/features/</code>), and add an index row if the doc is new. User-visible
+behavior also updates <code>docs/SPEC.html</code> in the same commit. A docs-only
+follow-up commit is the one that gets skipped. Pure refactors with no
+behavior, mechanism, config or test change need no doc edit — do not churn
+the map.
+</li>
+<li><strong>Read the map before the code, and keep the map worth reading.</strong> A feature
+page is an anti-hunting payload: the file, type, function and test names for
+one area, and the traps that cost someone an afternoon. Opening the source
+first and writing the page afterwards spends the tokens twice. If a page is
+wrong, fix it in the same commit rather than working around it — a map
+nobody trusts is worse than no map.
+</li>
+<li><strong>Search the map in the same breath as the code.</strong> A grep for a feature, a
+symbol or a behaviour runs over <code>docs/features/</code> too: the feature pages name
+the identifiers and the tests, so the page you need is usually one hop from
+the hit.
+</li>
+<li><strong><code>HANDOFF.md</code> is refreshed at the end of a session, not per commit.</strong> It
+carries what only the passing session knows — open threads, next steps, the
+last thing delivered — under an <code>As of</code> stamp. It is allowed to lag the tip:
+its header says the code wins. Refresh it before you hand the work over.
+</li>
+<li><strong>Measure, don&#39;t deduce it.</strong> Reading the code and doing the arithmetic in
+your head is how geometry, layout and formatting bugs ship. Print the real
+numbers from the real thing — a headless run, a scratch script, the actual
+command — and assert both the good and the broken case, so each test carries
+its own failure mode.
+</li>
+<li><strong>Gate on the whole check set, not just the tests.</strong> The linter catches the
+classes of defect the test run compiles straight past. Run the formatting,
+the lint with warnings denied, the tests and the build before you call
+something done.
+</li>
+<li><strong>Commit messages go through a file.</strong> Write the message to a scratch file
+(this machine uses <code>%LOCALAPPDATA%\Temp\opencode\&lt;project&gt;-commit-msg.txt</code>)
+and run <code>git commit -F &lt;path&gt;</code>; a PowerShell here-string gets its terminator
+mangled by the shell tool.
+</li>
+<li><strong>No AI attribution in a commit message, ever, without being asked.</strong> No
+<code>Co-Authored-By</code> trailer, no <code>Generated with</code> footer, nothing that reads as
+crediting a model or tool. These commits are the user&#39;s. This is enforced,
+not merely preferred: a machine-wide <code>commit-msg</code> hook
+(<code>core.hooksPath</code> = <code>C:/Users/mega/.githooks</code>) rejects the commit outright,
+and it blocks human co-authors too, so the only ways past it are <code>--no-verify</code>
+or <code>ALLOW_COAUTHOR=1</code>. <strong>Use neither without the user asking in that
+conversation.</strong> If the hook blocks something, report it and stop; do not
+reword the message to slip a trailer past the pattern.
+</li>
+<li><strong>Package after committing.</strong> If the version is derived from the commit
+(a count since a base tag, a stamped build number), packaging first yields
+the previous commit&#39;s number. Raise the minor and the base together, in the
+same commit, and keep every reader of that number reading it from one place.
+</li>
+<li><strong>Do not commit before the user has looked at it.</strong> Hand a visual change over
+as a build and wait for confirmation.
+</li>
+</ul>
+</section>
+<section id="where-the-working-knowledge-lives">
+<h2>Where the working knowledge lives</h2>
+<p>The per-feature working knowledge lives in <code>docs/features/</code>; its <code>index.html</code>
+is the index. This file keeps the process rules and the hard rules that apply
+across features; the feature pages keep the maps, mechanisms and traps.</p>
+</section>
+<section id="hard-rules">
+<h2>Hard rules</h2>
+<p>No project-specific invariant is pinned yet. Add one bullet per constraint
+that must not decay — the rule, the reason it exists, and the test or check
+that pins it.</p>
+<ul>
+<li>The README is for users. Implementation detail belongs in <code>docs/SPEC.html</code> for
+behavior and here for working knowledge, and the user must be consulted
+before technical detail is added to the README.
+</li>
+<li><strong><code>AGENTS.html</code> is the source of truth; <code>AGENTS.md</code> is a pointer
+stub.</strong> The stub carries the marker comment and a link, and exists so tools
+that look for <code>AGENTS.md</code> still resolve. Edit <code>AGENTS.html</code> directly. The known
+cost: OpenCode injects <code>AGENTS.md</code>, so later sessions see the pointer rather
+than these rules, and <code>feature_map_adopt</code> reports the six template blocks
+missing against the stub.
+</li>
+<li><strong>A reply is measured on rendered text, never on HTML.</strong> <code>page.text</code> is
+<code>htmlToMapText()</code> output and every rank, cap and byte count reads it; a change
+that measures the markup spends the agent&#39;s budget on attributes. Pinned by
+<code>an unchanged HTML page is not rewritten</code> and the round-trip test in
+<code>test/html.test.mjs</code>.
+</li>
+<li><strong><code>verbatim</code> carries a reason.</strong> <code>&lt;pre class=&quot;verbatim&quot;&gt;</code> without <code>data-why</code>
+is a review defect, not a style choice; <code>scanHtml()</code> reports it and
+<code>feature_map_check</code> names the page. Pseudocode is the default for a code fence
+and keeps its source language in <code>data-from-lang</code>.
+</li>
+</ul>
+</section>
+</main>
+<footer class="doc-footer">
+<p>Generated by <code>html-as-doc</code> from <code>AGENTS.md</code>.</p>
+<p>The Markdown file is a pointer; this HTML page is the source of truth. Edit it directly and re-run <code>html-docs.mjs verify</code>.</p>
+</footer>
+
+</body>
+</html>
