@@ -1,4 +1,12 @@
+![opencode-feature-map — read the map before the source](docs/assets/header.svg)
+
 # opencode-feature-map
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg?style=flat-square)](package.json)
+[![Node 22+](https://img.shields.io/badge/node-22%2B-339933.svg?style=flat-square&logo=nodedotjs&logoColor=white)](.github/workflows/ci.yml)
+[![Topic: opencode-plugin](https://img.shields.io/badge/topic-opencode--plugin-0e7490.svg?style=flat-square)](https://github.com/topics/opencode-plugin)
+[![Buy me a coffee](https://img.shields.io/badge/buy%20me%20a%20coffee-PayPal-ffdd00.svg?style=flat-square&logo=buymeacoffee&logoColor=black)](https://www.paypal.me/mega3dp)
 
 An OpenCode plugin that makes an agent read your project's documentation
 before it reads your source.
@@ -324,6 +332,17 @@ This README is for using the plugin. The rest is in the repository:
 - [`HANDOFF.md`](HANDOFF.md) — where things currently stand.
 - [`templates/`](templates/) — the boilerplate the plugin hands to a project.
 
+## Author
+
+Evert Chin — [@megablue](https://github.com/megablue).
+
+## Buy me a coffee
+
+This plugin is free and MIT-licensed. If it earns its keep, you can
+[buy me a coffee via PayPal](https://www.paypal.me/mega3dp).
+
 ## License
 
 MIT — see [`LICENSE`](LICENSE).
+
+Copyright (c) Evert Chin

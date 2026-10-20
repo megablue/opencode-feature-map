@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="100%" height="100%" role="img" aria-label="opencode-feature-map - read the map before the source">
+  <defs>
+    <radialGradient id="bg" cx="18%" cy="28%" r="85%">
+      <stop offset="0%" stop-color="#132a3a"/>
+      <stop offset="52%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#070b12"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#c084fc"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111a2b"/>
+      <stop offset="100%" stop-color="#0c1422"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="7" result="b"/>
+      <feComposite in="SourceGraphic" in2="b" operator="over"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- subtle grid -->
+  <g stroke="#ffffff" stroke-opacity="0.035" stroke-width="1">
+    <path d="M0 90 H1200 M0 180 H1200 M0 270 H1200 M0 360 H1200 M0 450 H1200 M0 540 H1200"/>
+    <path d="M150 0 V630 M300 0 V630 M450 0 V630 M600 0 V630 M750 0 V630 M900 0 V630 M1050 0 V630"/>
+  </g>
+
+  <!-- eyebrow chip -->
+  <g transform="translate(80, 116)">
+    <rect x="0" y="0" width="256" height="34" rx="17" fill="#101a2b" stroke="#38bdf8" stroke-opacity="0.6" stroke-width="1.5"/>
+    <text x="128" y="22" fill="#7dd3fc" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="13" font-weight="600" text-anchor="middle" letter-spacing="1">OPENCODE PLUGIN</text>
+  </g>
+
+  <!-- title -->
+  <text x="80" y="206" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="56" font-weight="800" letter-spacing="-1.5">opencode-feature-map</text>
+
+  <!-- accent underline -->
+  <rect x="82" y="228" width="120" height="4" rx="2" fill="url(#accent)"/>
+
+  <!-- subtitle -->
+  <text x="80" y="290" fill="#a8b3c7" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="400">Read the map before the source.</text>
+  <text x="80" y="324" fill="#8b96ab" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="400">One page per feature — the files, types, tests and traps</text>
+  <text x="80" y="350" fill="#8b96ab" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="400">for the area you are about to change.</text>
+
+  <!-- feature tags -->
+  <g transform="translate(80, 408)" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="13">
+    <g>
+      <rect x="0" y="0" width="132" height="32" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="66" y="20" fill="#cbd5e1" text-anchor="middle">Feature map</text>
+    </g>
+    <g transform="translate(144,0)">
+      <rect x="0" y="0" width="116" height="32" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="58" y="20" fill="#cbd5e1" text-anchor="middle">Six tools</text>
+    </g>
+    <g transform="translate(272,0)">
+      <rect x="0" y="0" width="96" height="32" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="48" y="20" fill="#cbd5e1" text-anchor="middle">Guard</text>
+    </g>
+    <g transform="translate(380,0)">
+      <rect x="0" y="0" width="146" height="32" rx="8" fill="#0f172a" stroke="#334155"/>
+      <text x="73" y="20" fill="#cbd5e1" text-anchor="middle">HTML map</text>
+    </g>
+  </g>
+
+  <!-- right motif: the map, one read at a time -->
+  <g transform="translate(790, 150)" filter="url(#glow)">
+    <rect x="0" y="0" width="320" height="72" rx="14" fill="url(#card)" stroke="#38bdf8" stroke-opacity="0.7" stroke-width="1.5"/>
+    <text x="24" y="31" fill="#7dd3fc" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="13" font-weight="600">&lt;feature-map&gt;</text>
+    <text x="24" y="55" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15">the index, one section at a time</text>
+  </g>
+  <g transform="translate(790, 250)" filter="url(#glow)">
+    <rect x="0" y="0" width="320" height="72" rx="14" fill="url(#card)" stroke="#818cf8" stroke-opacity="0.7" stroke-width="1.5"/>
+    <text x="24" y="31" fill="#a5b4fc" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="13" font-weight="600">docs/features/</text>
+    <text x="24" y="55" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15">one page per feature</text>
+  </g>
+  <g transform="translate(790, 350)" filter="url(#glow)">
+    <rect x="0" y="0" width="320" height="72" rx="14" fill="url(#card)" stroke="#c084fc" stroke-opacity="0.7" stroke-width="1.5"/>
+    <text x="24" y="31" fill="#d8b4fe" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="13" font-weight="600">feature_map_check</text>
+    <text x="24" y="55" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15">drift and oversize, measured</text>
+  </g>
+</svg>

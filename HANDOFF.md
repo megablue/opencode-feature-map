@@ -53,6 +53,14 @@ verifying the live tool and the `html-as-doc` docs pass (the HTML SPEC,
   for that name. The shipped `templates/docs/SPEC.md.tmpl` stays
   Markdown on purpose: the skill is optional for a scaffolded project, so the
   plugin must not require HTML for a SPEC.
+- **The README gained its packaging furniture.** A header image
+  (`docs/assets/header.svg`), a badge strip (licence, version, Node 22+, topic,
+  PayPal), an `Author` section, a `Buy me a coffee` section with the PayPal
+  link, a linked `LICENSE`, and `.github/FUNDING.yml` naming the same PayPal
+  address. The version badge is a hand copy of `package.json`'s `version`:
+  bump both in the same commit. `README.md` stays canonical and `README.html`
+  is re-rendered from it — the header and badges are Markdown images and
+  links because the renderer does not pass raw HTML through.
 - **`AGENTS.html` is the source of truth**, and `AGENTS.md` is an
   `html-as-doc` pointer stub. Edit the HTML. The stub is deliberate even though
   OpenCode injects `AGENTS.md` as instruction text: later sessions see the link
