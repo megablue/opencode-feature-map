@@ -1587,10 +1587,14 @@ function buildCommands(ctx: any, tools: any[]) {
   // what a person types; the reverse maps back to the tool.
   const toolName = (name) => name.replace(/-/g, '_')
 
+  // One line each: the palette shows the description, not the manual. The
+  // full grammar is in the README and the tool description carries the detail
+  // for the agent, so a command that needs three sentences here is documenting
+  // itself in the wrong place.
   return [
     command(
       'feature-map',
-      'Read the project feature map — the index, the sections for a topic, one page, one section, or the whole page. Arguments: a topic, or page:<name> section:<heading> (add sub:<heading>), with full or skeleton.',
+      'Read the map: a topic, or page:, section:, sub:; `full`, `skeleton`.',
       (text) => {
         const { args, words } = parseArgs(text)
         const topic = words.join(' ')
@@ -1599,12 +1603,12 @@ function buildCommands(ctx: any, tools: any[]) {
     ),
     command(
       'feature-map-check',
-      'Report where the feature map has drifted — pages no index row links, rows whose link goes nowhere — and the sections that have outgrown a single read.',
+      'Report map drift: unindexed pages, dead links, oversized sections.',
       () => ({}),
     ),
     command(
       'feature-map-init',
-      'Scaffold the documentation workflow into a project: AGENTS.md, HANDOFF.md, docs/SPEC.md and the map index. Plan by default; `write` writes, `force` overwrites, project:<name> and summary:<text…> set the substitutions, only:<ids> narrows the set.',
+      'Scaffold the docs workflow; plan, `write`, `force`, project:, summary:.',
       (text) => {
         const { args, words } = parseArgs(text)
         const summary = /(?:^|\s)summary:(.*)$/.exec(String(text ?? '').trim())
@@ -1615,7 +1619,7 @@ function buildCommands(ctx: any, tools: any[]) {
     ),
     command(
       'feature-map-adopt',
-      "Bring an existing project's documentation up to the feature-map workflow: what each page is missing, which index rows do not resolve, which AGENTS.md blocks to paste. Read-only by default; `apply` writes only the files that do not exist. focus:all|index|pages|sizes|agents|candidates narrows the report.",
+      'Report what docs are missing; `apply` writes new files, focus: narrows.',
       (text) => {
         const { args, words } = parseArgs(text)
         if (words.length && !args.focus) args.focus = words[0]
@@ -1624,12 +1628,12 @@ function buildCommands(ctx: any, tools: any[]) {
     ),
     command(
       'feature-map-regen',
-      'Rewrite an existing map so it reads one section at a time: the missing headings, a Status line, every oversized section divided into `###` chunks, the index reconciled. Plan by default; `show` returns the rewritten text, `apply` writes it.',
+      'Rewrite a map to read by section; plan, `show`, `apply`.',
       (text) => parseArgs(text).args,
     ),
     command(
       'feature-map-upgrade',
-      'Convert a legacy Markdown map to HTML — one `.html` page per `.md` page, `index.html` for the index, `.md` links rewritten. Plan by default; `apply` writes, `prune` also removes the `.md` sources, `force` overwrites existing HTML.',
+      'Convert a Markdown map to HTML; plan, `apply`, `prune`, `force`.',
       (text) => parseArgs(text).args,
     ),
   ]

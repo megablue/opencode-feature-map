@@ -220,6 +220,18 @@ test('setup registers one instruction hook, six tools, one guard and six command
   )
 })
 
+test('every command description is one line, because the palette has no second line', async () => {
+  const ctx = mockContext()
+  await plugin.setup(ctx)
+  for (const command of ctx.record.commands) {
+    assert.ok(!command.description.includes('\n'), `${command.name} is one line`)
+    assert.ok(
+      command.description.length <= 100,
+      `${command.name} is ${command.description.length} chars; a palette entry is a sentence, not a manual`,
+    )
+  }
+})
+
 test('the instruction renders with the fs tools present and stays silent without them', async () => {
   const ctx = mockContext()
   await plugin.setup(ctx)

@@ -25,7 +25,7 @@ verifying the live tool and the `html-as-doc` docs pass (the HTML SPEC,
   gone, replaced by `index.html` and seven `.html` pages, including the new
   `html-format.html`. The index has a `Page format` section and a mermaid
   graph demonstrating the format.
-- **The gate is green**: typecheck, build, **86 tests** (84 at `c3e0b97`),
+- **The gate is green**: typecheck, build, **87 tests** (84 at `c3e0b97`),
   smoke (`7` HTML pages, `0` unindexed, `0` unresolved, regen would change
   `0`) and `measure` (the reference fixture is still Markdown and still reads).
 - **Live verification found a shipped crash.** Calling the live
@@ -39,6 +39,12 @@ verifying the live tool and the `html-as-doc` docs pass (the HTML SPEC,
   `opencode plugin list` show `feature-map local` from the global plugins
   directory. The registered surface is six tools, six commands, one
   instruction hook and one guard.
+- **Command descriptions are one line.** The palette has no second line, so
+  each of the six now says what it does plus the flags a person types: ~400
+  characters in total, down from ~1.4k of manual. The full grammar stays in the
+  README and the detail in each tool description, which is what the agent
+  reads. Pinned by `every command description is one line, because the palette
+  has no second line`.
 - **The behaviour spec is HTML now.** `docs/SPEC.html` is the source of truth
   and `docs/SPEC.md` is an `html-as-doc` pointer stub (marker comment plus a
   link), kept so the many tools and instructions that look for `SPEC.md` still
