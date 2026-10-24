@@ -3,7 +3,7 @@
 # opencode-feature-map
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg?style=flat-square)](package.json)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg?style=flat-square)](package.json)
 [![Node 22+](https://img.shields.io/badge/node-22%2B-339933.svg?style=flat-square&logo=nodedotjs&logoColor=white)](.github/workflows/ci.yml)
 [![Topic: opencode-plugin](https://img.shields.io/badge/topic-opencode--plugin-0e7490.svg?style=flat-square)](https://github.com/topics/opencode-plugin)
 [![Buy me a coffee](https://img.shields.io/badge/buy%20me%20a%20coffee-PayPal-ffdd00.svg?style=flat-square&logo=buymeacoffee&logoColor=black)](https://www.paypal.me/mega3dp)
@@ -288,6 +288,33 @@ If a session is doing something the map does not help with — a large mechanica
 refactor, say — set `mode` to `prompt` for the instruction without the guard, or
 `off` to silence both.
 
+## A note when a newer version is published
+
+The package has a second, small half that the terminal loads. Once a day it
+reads the published `package.json`, compares it with the version installed, and
+— when the published one is newer — shows one toast:
+
+```
+feature map update
+0.3.0 is available (installed 0.2.0) - git pull && npm run plugin:install
+```
+
+One toast per release: an update you have already been told about stays quiet
+until a newer one appears. If the network is down, or the reply is not a
+manifest, nothing is shown and the check is retried the next day. It touches no
+session and blocks no turn.
+
+To turn it off, put this beside `opencode.json`:
+
+```json
+{ "updateCheck": false }
+```
+
+The file is `~/.config/opencode/feature-map.json` (honouring `XDG_CONFIG_HOME`
+and `OPENCODE_CONFIG_DIR`). A missing, empty or malformed file leaves the check
+on; only an explicit `false` turns it off. `"updateCheck": false` in the plugin's
+`options` does the same.
+
 ## Configuration
 
 Options are passed to the plugin through its entry in `opencode.json(c)`:
@@ -314,6 +341,7 @@ Options are passed to the plugin through its entry in `opencode.json(c)`:
 | `maxBytes` | `12000` | Byte budget for one reply; a capped reply says where to resume. |
 | `sectionsPerTopic` | `3` | How many sections a topic reply may carry. |
 | `maxSectionBytes` | `2048` | The size a section should be readable in; past it, the checker reports the section. |
+| `updateCheck` | `true` | The daily newer-version toast. Also readable from `feature-map.json` (see above), which is how the terminal half is switched off without editing this entry. |
 
 ## Where the details live
 
@@ -327,6 +355,7 @@ This README is for using the plugin. The rest is in the repository:
   [adoption](docs/features/adoption.html),
   [regeneration](docs/features/regen.html),
   [the HTML format](docs/features/html-format.html),
+  [the update check](docs/features/update-check.html),
   [packaging](docs/features/packaging.html).
 - [`AGENTS.md`](AGENTS.md) — how to work on the plugin.
 - [`HANDOFF.md`](HANDOFF.md) — where things currently stand.

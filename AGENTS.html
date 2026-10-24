@@ -98,16 +98,18 @@ traps.</p>
 <p>One bullet per top-level directory: what it owns, and why it is separate from
 its neighbour.</p>
 <ul>
-<li><strong><code>src/</code></strong> — the plugin, in six files. <code>index.ts</code> is the only OpenCode-aware
+<li><strong><code>src/</code></strong> — the plugin, in nine files. <code>index.ts</code> is the only OpenCode-aware
 file: the host adapters (<code>toolDef</code>, <code>buildCommands</code>, <code>parseArgs</code>), the guard
 and the <code>Plugin.define</code> entry. <code>map.ts</code>, <code>regen.ts</code> and <code>templates.ts</code> are
 byte-faithful ports of the DSH implementation (<code>@ts-nocheck</code>, pinned by the
 suite rather than the typechecker) — the map reading/ranking/checking, the
 regeneration, and the scaffold templates. <code>html.ts</code> is the format seam: the
 tolerant HTML reader, the canonical-text writer, the mermaid edge list and the
-Markdown converter; <code>upgrade.ts</code> is the additive migration built on it. The
-files stay separate so the OpenCode surface can change without the ported
-logic drifting from its original.
+Markdown converter; <code>upgrade.ts</code> is the additive migration built on it.
+<code>tui.ts</code> is the terminal half (the daily update toast), with its rules in
+<code>update.ts</code> and its one switch in <code>config.ts</code>; it imports none of the TUI
+peers, so it loads wherever a toast exists. The files stay separate so the
+OpenCode surface can change without the ported logic drifting from its original.
 </li>
 <li><strong><code>dist/</code></strong> — the built output (<code>tsc</code>). What <code>scripts/install.mjs</code> copies;
 never edit by hand, and always rebuilt as part of the gate.
@@ -120,7 +122,9 @@ instruction file); see <code>docs/features/templates.html</code>. The map templa
 <li><strong><code>test/</code></strong> — <code>plugin.test.mjs</code> (the map/template layer on <code>dist/</code>),
 <code>html.test.mjs</code> (the HTML format, the upgrade and HTML regeneration),
 <code>contract.test.mjs</code> (the host surface: registrations, tools, guard, commands),
-<code>install.test.mjs</code> (the install/uninstall surface). The tests import the
+<code>update.test.mjs</code> (the daily check: the rules, the switch, the toast over a
+fake context and a stubbed <code>fetch</code>), <code>install.test.mjs</code> (the install/uninstall
+surface, including the two root shims). The tests import the
 built <code>dist/</code>, so the build is part of the test gate.
 </li>
 <li><strong><code>scripts/</code></strong> — <code>test.mjs</code> (runs every <code>*.test.mjs</code> in one process),

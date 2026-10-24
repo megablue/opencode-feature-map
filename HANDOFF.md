@@ -10,9 +10,8 @@ disagrees with the code, the code is right. `AGENTS.md` is the process doc,
 This file is the volatile one — it exists so a new session knows *where things
 stand*, not *how they work*.
 
-As of `2026-10-18` — version `0.2.0` (`c3e0b97`), plus the crash fix found by
-verifying the live tool and the `html-as-doc` docs pass (the HTML SPEC,
-`README.html`, `AGENTS.html`), both committed on `main`.
+As of `2026-10-24` — version `0.3.0` on `main`, with the six commands' palette
+descriptions shortened and the daily update check added after it.
 
 ## State
 
@@ -25,8 +24,8 @@ verifying the live tool and the `html-as-doc` docs pass (the HTML SPEC,
   gone, replaced by `index.html` and seven `.html` pages, including the new
   `html-format.html`. The index has a `Page format` section and a mermaid
   graph demonstrating the format.
-- **The gate is green**: typecheck, build, **87 tests** (84 at `c3e0b97`),
-  smoke (`7` HTML pages, `0` unindexed, `0` unresolved, regen would change
+- **The gate is green**: typecheck, build, **104 tests** (87 at `9f278f4`),
+  smoke (`8` HTML pages, `0` unindexed, `0` unresolved, regen would change
   `0`) and `measure` (the reference fixture is still Markdown and still reads).
 - **Live verification found a shipped crash.** Calling the live
   `feature_map_upgrade` on a project with no map returned
@@ -45,6 +44,14 @@ verifying the live tool and the `html-as-doc` docs pass (the HTML SPEC,
   README and the detail in each tool description, which is what the agent
   reads. Pinned by `every command description is one line, because the palette
   has no second line`.
+- **The plugin has a TUI half now.** `src/tui.ts` checks the published
+  `package.json` once a day and toasts a newer version once; the rules are in
+  `src/update.ts`, the `updateCheck` switch in `src/config.ts`
+  (`~/.config/opencode/feature-map.json`). The install writes a second root shim,
+  `tui.js`, because the loader resolves a directory target to `<dir>/tui`; the
+  package also exports `./tui`. The suite is 104 tests, with the check pinned in
+  `test/update.test.mjs` over a fake context and a stubbed `fetch`, and the shim
+  in `test/install.test.mjs`. See `docs/features/update-check.html`.
 - **The behaviour spec is HTML now.** `docs/SPEC.html` is the source of truth
   and `docs/SPEC.md` is an `html-as-doc` pointer stub (marker comment plus a
   link), kept so the many tools and instructions that look for `SPEC.md` still
@@ -119,6 +126,6 @@ verifying the live tool and the `html-as-doc` docs pass (the HTML SPEC,
 ## Local-only state (not on the remote)
 
 - The global plugins directory holds the live copy
-  (`~/.config/opencode/plugins/feature-map/`), refreshed after the 0.2.0
+  (`~/.config/opencode/plugins/feature-map/`), refreshed after the 0.3.0
   build. `npm run plugin:uninstall` removes it; the same copy under a project's
   `.opencode/plugins/` is what `--project` creates.

@@ -53,6 +53,16 @@ const PARTS = ['package.json', 'dist', 'templates']
  */
 const ENTRY_SHIM = "export { default } from './dist/index.js'\n"
 
+/**
+ * The TUI entry, beside the server one.
+ *
+ * The same resolution applies to the other half: a directory target is asked
+ * for `<dir>/tui` and, with no file there, the TUI plugin simply does not
+ * appear — a silent absence, because a missing TUI half is legal. The shim is
+ * the whole difference between the daily update toast being installed and not.
+ */
+const TUI_SHIM = "export { default } from './dist/tui.js'\n"
+
 /** The repository this script lives in. */
 const REPO_ROOT = resolve(import.meta.dirname, '..')
 
@@ -118,6 +128,7 @@ export async function install(pluginsDir) {
     await copyTree(join(REPO_ROOT, part), join(target, part))
   }
   await writeFile(join(target, 'index.js'), ENTRY_SHIM, 'utf8')
+  await writeFile(join(target, 'tui.js'), TUI_SHIM, 'utf8')
   return target
 }
 

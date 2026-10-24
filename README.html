@@ -60,7 +60,7 @@ img{max-width:100%;height:auto}
 <p><img src="docs/assets/header.svg" alt="opencode-feature-map — read the map before the source"></p>
 <h1 id="opencode-feature-map">opencode-feature-map</h1>
 <p><a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License: MIT"></a>
-<a href="package.json"><img src="https://img.shields.io/badge/version-0.2.0-blue.svg?style=flat-square" alt="Version"></a>
+<a href="package.json"><img src="https://img.shields.io/badge/version-0.3.0-blue.svg?style=flat-square" alt="Version"></a>
 <a href=".github/workflows/ci.yml"><img src="https://img.shields.io/badge/node-22%2B-339933.svg?style=flat-square&amp;logo=nodedotjs&amp;logoColor=white" alt="Node 22+"></a>
 <a href="https://github.com/topics/opencode-plugin"><img src="https://img.shields.io/badge/topic-opencode--plugin-0e7490.svg?style=flat-square" alt="Topic: opencode-plugin"></a>
 <a href="https://www.paypal.me/mega3dp"><img src="https://img.shields.io/badge/buy%20me%20a%20coffee-PayPal-ffdd00.svg?style=flat-square&amp;logo=buymeacoffee&amp;logoColor=black" alt="Buy me a coffee"></a></p>
@@ -345,6 +345,24 @@ is never treated as a source lookup.</p>
 refactor, say — set <code>mode</code> to <code>prompt</code> for the instruction without the guard, or
 <code>off</code> to silence both.</p>
 </section>
+<section id="a-note-when-a-newer-version-is-published">
+<h2>A note when a newer version is published</h2>
+<p>The package has a second, small half that the terminal loads. Once a day it
+reads the published <code>package.json</code>, compares it with the version installed, and
+— when the published one is newer — shows one toast:</p>
+<pre class="code"><code>feature map update
+0.3.0 is available (installed 0.2.0) - git pull &amp;&amp; npm run plugin:install</code></pre>
+<p>One toast per release: an update you have already been told about stays quiet
+until a newer one appears. If the network is down, or the reply is not a
+manifest, nothing is shown and the check is retried the next day. It touches no
+session and blocks no turn.</p>
+<p>To turn it off, put this beside <code>opencode.json</code>:</p>
+<pre class="code" data-lang="json"><code>{ &quot;updateCheck&quot;: false }</code></pre>
+<p>The file is <code>~/.config/opencode/feature-map.json</code> (honouring <code>XDG_CONFIG_HOME</code>
+and <code>OPENCODE_CONFIG_DIR</code>). A missing, empty or malformed file leaves the check
+on; only an explicit <code>false</code> turns it off. <code>&quot;updateCheck&quot;: false</code> in the plugin&#39;s
+<code>options</code> does the same.</p>
+</section>
 <section id="configuration">
 <h2>Configuration</h2>
 <p>Options are passed to the plugin through its entry in <code>opencode.json(c)</code>:</p>
@@ -398,6 +416,11 @@ refactor, say — set <code>mode</code> to <code>prompt</code> for the instructi
 <td><code>2048</code></td>
 <td>The size a section should be readable in; past it, the checker reports the section.</td>
 </tr>
+<tr>
+<td><code>updateCheck</code></td>
+<td><code>true</code></td>
+<td>The daily newer-version toast. Also readable from <code>feature-map.json</code> (see above), which is how the terminal half is switched off without editing this entry.</td>
+</tr>
 </tbody>
 </table>
 </section>
@@ -414,6 +437,7 @@ itself: <a href="docs/features/map-tool.html">the map tool</a>,
 <a href="docs/features/adoption.html">adoption</a>,
 <a href="docs/features/regen.html">regeneration</a>,
 <a href="docs/features/html-format.html">the HTML format</a>,
+<a href="docs/features/update-check.html">the update check</a>,
 <a href="docs/features/packaging.html">packaging</a>.
 </li>
 <li><a href="AGENTS.md"><code>AGENTS.md</code></a> — how to work on the plugin.

@@ -45,7 +45,16 @@ describe('the install script', () => {
     const manifest = JSON.parse(await readFile(join(target, 'package.json'), 'utf8'))
     assert.equal(manifest.name, 'opencode-feature-map')
     assert.equal(manifest.exports['.'], './dist/index.js')
-    for (const part of ['dist/index.js', 'dist/map.js', 'dist/regen.js', 'dist/templates.js']) {
+    assert.equal(manifest.exports['./tui'], './dist/tui.js', 'the TUI half is exported by name too')
+    for (const part of [
+      'dist/index.js',
+      'dist/map.js',
+      'dist/regen.js',
+      'dist/templates.js',
+      'dist/tui.js',
+      'dist/update.js',
+      'dist/config.js',
+    ]) {
       assert.ok(existsSync(join(target, part)), `installed ${part}`)
     }
     assert.ok(existsSync(join(target, 'templates', 'AGENTS.md.tmpl')), 'the templates shipped')
@@ -72,6 +81,12 @@ describe('the install script', () => {
     await install(plugins)
     const entry = await readFile(join(target, 'index.js'), 'utf8')
     assert.match(entry, /export \{ default \} from '\.\/dist\/index\.js'/, 'the entry is the shim')
+    const tuiEntry = await readFile(join(target, 'tui.js'), 'utf8')
+    assert.match(
+      tuiEntry,
+      /export \{ default \} from '\.\/dist\/tui\.js'/,
+      'the TUI entry is the same kind of shim, without which the host finds no TUI half',
+    )
     assert.ok(!existsSync(join(target, 'templates.js')), 'no stale root modules remain')
     assert.ok(!existsSync(join(target, 'map.js')), 'no stale root modules remain')
     assert.ok(existsSync(join(target, 'dist', 'index.js')), 'the package layout is intact')

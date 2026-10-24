@@ -137,6 +137,15 @@ complied. A second denial never happens in the same session.
 <li><strong>Nothing at all in a project with no map.</strong> No denial, no nagging, and no
 cost beyond the standing instruction.
 </li>
+<li><strong>At most one note a day that a newer version exists.</strong> A small
+terminal half reads the published <code>package.json</code> once a day and, when that
+version is newer than the installed one, shows one toast naming both versions
+and the update command. It says it once per release, shows nothing when the
+network is down or the reply is not a manifest, and never blocks a turn.
+<code>{ &quot;updateCheck&quot;: false }</code> in
+<code>~/.config/opencode/feature-map.json</code>, or in the plugin&#39;s options,
+turns it off.
+</li>
 <li><strong>A way to start a map.</strong> <code>feature_map_init</code> returns the four documents that
 make up the workflow — <code>AGENTS.md</code>, <code>HANDOFF.md</code>, <code>docs/SPEC.md</code> and the map
 index with its page template — rendered for the project, or writes them on
@@ -244,9 +253,11 @@ single chunk named after its title rather than disappearing from a search.
 <li>The plugin runs inside the OpenCode server, under the authority of the user
 who installed it, so reading the map and writing the boilerplate are both
 plain filesystem operations. There is no sandbox seam to write through, and
-no user interface of its own: no settings page, no panel - the six commands
-above are the whole surface. Its configuration is the plugin options entry in
-<code>opencode.json(c)</code>.
+no user interface of its own beyond one update toast: no settings page, no
+panel - the six commands above are the whole surface. Its configuration is the
+plugin options entry in <code>opencode.json(c)</code>, plus one optional file,
+<code>feature-map.json</code> beside it, for the update switch. The update check
+is the only thing that speaks to the network, and it reads one public manifest.
 </li>
 </ul>
 </section>
