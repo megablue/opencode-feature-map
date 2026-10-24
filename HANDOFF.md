@@ -10,8 +10,9 @@ disagrees with the code, the code is right. `AGENTS.md` is the process doc,
 This file is the volatile one — it exists so a new session knows *where things
 stand*, not *how they work*.
 
-As of `2026-10-24` — version `0.3.0` on `main`, with the six commands' palette
-descriptions shortened and the daily update check added after it.
+As of `2026-10-24` — version `0.3.0` on `main`, two commits ahead of
+`origin/main` and not yet pushed: the shortened command descriptions, then the
+daily update check.
 
 ## State
 
@@ -37,7 +38,7 @@ descriptions shortened and the daily update check added after it.
 - **Live install refreshed**: `npm run plugin:install` and
   `opencode plugin list` show `feature-map local` from the global plugins
   directory. The registered surface is six tools, six commands, one
-  instruction hook and one guard.
+  instruction hook, one guard and the `tui` entrypoint.
 - **Command descriptions are one line.** The palette has no second line, so
   each of the six now says what it does plus the flags a person types: ~400
   characters in total, down from ~1.4k of manual. The full grammar stays in the
@@ -51,7 +52,8 @@ descriptions shortened and the daily update check added after it.
   `tui.js`, because the loader resolves a directory target to `<dir>/tui`; the
   package also exports `./tui`. The suite is 104 tests, with the check pinned in
   `test/update.test.mjs` over a fake context and a stubbed `fetch`, and the shim
-  in `test/install.test.mjs`. See `docs/features/update-check.html`.
+  in `test/install.test.mjs`. The `tui.js` in the global install loads and
+  toasts when exercised directly. See `docs/features/update-check.html`.
 - **The behaviour spec is HTML now.** `docs/SPEC.html` is the source of truth
   and `docs/SPEC.md` is an `html-as-doc` pointer stub (marker comment plus a
   link), kept so the many tools and instructions that look for `SPEC.md` still
@@ -92,6 +94,11 @@ descriptions shortened and the daily update check added after it.
 
 ## Open threads
 
+- **The update check has not been seen in a live TUI.** The `tui.js` in the
+  global install toasts when exercised directly, but the running terminal
+  predates the install, so restart it to see the real toast. The installed copy
+  is already `0.3.0` and the published manifest still says `0.2.0`, so a real
+  toast needs a later release: nothing published is newer than the disk.
 - Nothing from the plugin is left uncommitted; the `c3e0b97` HTML change, the
   no-map `planUpgrade()` fix and the `html-as-doc` docs pass (SPEC stub,
   `README.html`, `AGENTS.html`, `.html-as-doc.json`, this file) are committed
