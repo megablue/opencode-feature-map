@@ -76,13 +76,11 @@ daily update check.
   bump both in the same commit. `README.md` stays canonical and `README.html`
   is re-rendered from it — the header and badges are Markdown images and
   links because the renderer does not pass raw HTML through.
-- **`AGENTS.html` is the source of truth**, and `AGENTS.md` is an
-  `html-as-doc` pointer stub. Edit the HTML. The stub is deliberate even though
-  OpenCode injects `AGENTS.md` as instruction text: later sessions see the link
-  rather than the rules, and `feature_map_adopt` reports the six template blocks
-  missing against the stub. `.html-as-doc.json` skips only `reference/`, so
-  `scan` sees no unconverted copy here. `HANDOFF.md` is skipped by the skill
-  because tooling rewrites it.
+- **`AGENTS.md` is the source of truth.** OpenCode injects the Markdown itself,
+  so a pointer stub would leave later sessions with a link rather than the
+  rules; the document stays full Markdown and there is no `AGENTS.html`.
+  `.html-as-doc.json` skips only `reference/`, so `scan` sees no unconverted
+  copy here. `HANDOFF.md` is skipped by the skill because tooling rewrites it.
 - **Legacy maps are still read forever.** `findMapRoot()` prefers
   `index.html`, falls back to `README.md`, and returns `{format, legacy}`.
   Every reply from a legacy map carries a one-line notice naming
@@ -101,10 +99,10 @@ daily update check.
   toast needs a later release: nothing published is newer than the disk.
 - Nothing from the plugin is left uncommitted; the `c3e0b97` HTML change, the
   no-map `planUpgrade()` fix and the `html-as-doc` docs pass (SPEC stub,
-  `README.html`, `AGENTS.html`, `.html-as-doc.json`, this file) are committed
-  and installed. The human reviewed the pass and chose to keep the
-  `AGENTS.md` pointer stub over a canonical Markdown copy, accepting that
-  later sessions are injected with the link rather than the rules.
+  `README.html`, `.html-as-doc.json`, this file) are committed and installed.
+  `AGENTS.md` was restored to the full process doc and `AGENTS.html` removed:
+  the host injects the Markdown, so the pointer stub had hidden the rules from
+  later sessions.
 - **Live paths are all observed**: after reloading the reinstalled plugin, a
   human ran `/feature-map` and `/feature-map-upgrade` against a real session.
   The no-map reply reads "no map to convert" instead of throwing; the tool
@@ -128,7 +126,7 @@ daily update check.
 - `html-as-doc verify` checks the doctype, title, `main`, headings and code
   blocks — not paragraphs. A page whose prose was edited by hand still passes
   its checks, so re-render after every Markdown edit rather than trusting a
-  green `verify` to mean the page is current. Observed on `AGENTS.html`.
+  green `verify` to mean the page is current. Observed on the old `AGENTS.html` page.
 
 ## Local-only state (not on the remote)
 
